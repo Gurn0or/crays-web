@@ -926,6 +926,11 @@ export const navBar = {
     defaultMessage: 'Help',
     description: 'Label for the nav bar item link to Help page',
   },
+  wallet: {
+    id: 'navbar.wallet',
+    defaultMessage: 'Wallet',
+    description: 'Label for the nav bar item link to Wallet page',
+  },
 };
 
 export const note = {
