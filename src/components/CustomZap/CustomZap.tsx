@@ -15,10 +15,10 @@ import Modal from '../Modal/Modal';
 import { lottieDuration } from '../Note/NoteFooter/NoteFooter';
 import TextInput from '../TextInput/TextInput';
 import { useToastContext } from '../Toaster/Toaster';
-
 import styles from './CustomZap.module.scss';
 import { readSecFromStorage } from '../../lib/localStore';
 import { StreamingData } from '../../lib/streaming';
+import { getBreezService } from '../../lib/breez';
 
 const CustomZap: Component<{
   id?: string,
@@ -47,6 +47,7 @@ const CustomZap: Component<{
 
   const isSelected = (value: ZapOption) => {
     const sel = selectedValue();
+
     return value.amount === sel.amount && value.emoji === sel.emoji && value.message === sel.message;
   };
 
@@ -106,6 +107,7 @@ const CustomZap: Component<{
 
     if (!account.sec || account.sec.length === 0) {
       const sec = readSecFromStorage();
+
       if (sec) {
         account.actions.setShowPin(sec);
         return;
@@ -119,13 +121,16 @@ const CustomZap: Component<{
     //   return;
     // }
 
+    // Check if Breez is connected
+    const breezService = getBreezService();
+    const useBreez = breezService?.isConnected() || false;
+
     props.onConfirm(selectedValue());
 
     const note = props.note;
 
     if (note) {
       setTimeout(async () => {
-
         const zappers: Record<string, Function> = {
           [Kind.Text]: zapNote,
           [Kind.LongForm]: zapArticle,
@@ -139,10 +144,12 @@ const CustomZap: Component<{
           selectedValue().message,
           account.activeRelays,
           account.activeNWC,
+          useBreez,
         );
 
         handleZap(success);
       }, lottieDuration());
+
       return;
     }
 
@@ -154,6 +161,7 @@ const CustomZap: Component<{
         selectedValue().message,
         account.activeRelays,
         account.activeNWC,
+        useBreez,
       );
 
       handleZap(success);
@@ -165,7 +173,6 @@ const CustomZap: Component<{
 
     if (dvm && dvmUser) {
       setTimeout(async () => {
-
         const success = await zapDVM(
           dvm,
           dvmUser,
@@ -173,10 +180,12 @@ const CustomZap: Component<{
           selectedValue().amount || 0,
           selectedValue().message,
           account.activeRelays,
+          useBreez,
           );
 
           handleZap(success);
         }, lottieDuration());
+
       return;
     }
 
@@ -193,6 +202,7 @@ const CustomZap: Component<{
           selectedValue().message,
           account.activeRelays,
           account.activeNWC,
+          useBreez,
         );
 
         if (success && event) {
@@ -206,6 +216,7 @@ const CustomZap: Component<{
 
         props.onFail(selectedValue());
       }, lottieDuration());
+
       return;
     }
   };
@@ -257,18 +268,15 @@ const CustomZap: Component<{
           e.stopPropagation();
         }}
       >
-
         <div class={styles.description}>
           {intl.formatMessage(zapCustomOption,{
             user: userName(props.note?.user || props.profile),
           })}
-
           <span class={styles.amount}>
             {truncateNumber(selectedValue().amount || 0)}
           </span>
           <span class={styles.units}>sats</span>
         </div>
-
         <div class={styles.options}>
           <For each={settings?.availableZapOptions}>
             {(value) =>
@@ -291,7 +299,6 @@ const CustomZap: Component<{
             }
           </For>
         </div>
-
         <div class={styles.customAmount}>
           <TextInput
             name="customAmountInput"
@@ -305,7 +312,6 @@ const CustomZap: Component<{
             {intl.formatMessage(zapCustomAmount)}
           </label>
         </div>
-
         <TextInput
           type="text"
           value={selectedValue().message || ''}
@@ -313,7 +319,6 @@ const CustomZap: Component<{
           onChange={updateComment}
           noExtraSpace={true}
         />
-
         <div
           class={styles.action}
         >
@@ -325,7 +330,6 @@ const CustomZap: Component<{
             </div>
           </ButtonPrimary>
         </div>
-
       </div>
     </AdvancedSearchDialog>
   );
