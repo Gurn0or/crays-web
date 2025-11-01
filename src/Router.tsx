@@ -15,7 +15,6 @@ import { useDMContext } from './contexts/DMContext';
 import { generateNsec, nip19 } from './lib/nTools';
 import Blossom from './pages/Settings/Blossom';
 import CryptoRedirect from './components/CryptoRedirect';
-
 const Home = lazy(() => import('./pages/Home'));
 const Reads = lazy(() => import('./pages/Reads'));
 const Layout = lazy(() => import('./components/Layout/Layout'));
@@ -35,7 +34,6 @@ const EditProfile = lazy(() => import('./pages/EditProfile'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Mutelist = lazy(() => import('./pages/Mutelist'));
 const CreateAccount = lazy(() => import('./pages/CreateAccount')); 
-
 const NotifSettings = lazy(() => import('./pages/Settings/Notifications'));
 const Account = lazy(() => import('./pages/Settings/Account'));
 const HomeFeeds = lazy(() => import('./pages/Settings/HomeFeeds'));
@@ -48,20 +46,17 @@ const NostrWalletConnect = lazy(() => import('./pages/Settings/NostrWalletConnec
 const Menu = lazy(() => import('./pages/Settings/Menu'));
 // const Landing = lazy(() => import('./pages/Landing'));
 const AppDownloadQr = lazy(() => import('./pages/appDownloadQr'));
-const Feeds = lazy(() => import('./pages/Feeds'));
+const Feeds = lazy(() => import('./pages/FeedsTest'));
 const Feed = lazy(() => import('./pages/Feed'));
 const AdvancedSearch = lazy(() => import('./pages/AdvancedSearch'));
 const AdvancedSearchResults = lazy(() => import('./pages/AdvancedSearchResults'));
 const Streaming = lazy(() => import('./pages/StreamPage'));
-const CitadelPage = lazy(() => import('./pages/citadelstream'));
+const CitadelPage = lazy(() => import('./pages/CitadelPage'));
 const Wallet = lazy(() => import('./pages/Wallet'));
-
 declare global {
   interface Window extends PrimalWindow {}
 }
-
 const getKnownProfiles = cache(fetchKnownProfiles, 'knownProfiles');
-
 const AppRouter: Component = () => {
   return (
     <Router root={Layout}>
@@ -121,5 +116,4 @@ const AppRouter: Component = () => {
     </Router>
   );
 };
-
 export default AppRouter;
