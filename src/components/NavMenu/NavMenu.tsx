@@ -5,7 +5,6 @@ import { useAccountContext } from '../../contexts/AccountContext';
 import { useNotificationsContext } from '../../contexts/NotificationsContext';
 import { navBar as t, actions as tActions, placeholders as tPlaceholders } from '../../translations';
 import NavLink from '../NavLink/NavLink';
-
 import styles from './NavMenu.module.scss';
 import { hookForDev } from '../../lib/devTools';
 import ButtonPrimary from '../Buttons/ButtonPrimary';
@@ -63,7 +62,12 @@ const NavMenu: Component< { id?: string } > = (props) => {
       label: intl.formatMessage(t.downloads),
       icon: 'downloadIcon',
       bubble: () => notifications?.downloadsCount || 0,
-    }, 
+    },
+    {
+      to: '/wallet',
+      label: intl.formatMessage(t.wallet),
+      icon: 'lightningIcon',
+    },
     {
       to: '/settings',
       label: intl.formatMessage(t.settings),
@@ -89,7 +93,7 @@ const NavMenu: Component< { id?: string } > = (props) => {
   };
 
   return (
-    <div id={props.id} class={styles.navMenu}>
+    <div class={styles.navMenu} id={props.id}>
       <nav class={styles.sideNav}>
         <For each={links}>
           {({ to, label, icon, bubble, hiddenOnSmallScreens }) => {
@@ -104,7 +108,7 @@ const NavMenu: Component< { id?: string } > = (props) => {
           }
         </For>
       </nav>
-      <Show when={account?.hasPublicKey() && !loc.pathname.startsWith('/messages') && !loc.pathname.startsWith('/premium')}>
+      <Show when={account?.hasPublicKey()}>
         <div class={styles.callToAction}>
           <Switch
             fallback={
@@ -128,7 +132,7 @@ const NavMenu: Component< { id?: string } > = (props) => {
               </Show>
             }
           >
-            <Match when={loc.pathname.startsWith('/myarticles') || loc.pathname.startsWith('/reads/edit')}>
+            <Match when={loc.pathname.startsWith('/myarticles')}>
               <Show
                 when={isBigScreen()}
                 fallback={
@@ -155,7 +159,6 @@ const NavMenu: Component< { id?: string } > = (props) => {
                 </ButtonSecondary>
               </Show>
             </Match>
-
             <Match when={loc.pathname.startsWith('/reads') || loc.pathname.startsWith('/e/naddr') || loc.pathname.startsWith('/a/naddr')}>
               <Show
                 when={isBigScreen()}
@@ -185,7 +188,6 @@ const NavMenu: Component< { id?: string } > = (props) => {
           </Switch>
         </div>
       </Show>
-
       <Show when={account?.isKeyLookupDone && !account?.hasPublicKey() && isBigScreen()}>
         <div class={styles.callToAction}>
           <div class={styles.message}>
