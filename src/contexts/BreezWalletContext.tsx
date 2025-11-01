@@ -1,6 +1,7 @@
 import { createContext, useContext, ParentComponent, onMount } from 'solid-js';
 import { createStore } from 'solid-js/store';
 import { createEffect } from 'solid-js';
+import { loadWalletState, loadEncryptedMnemonic } from '../utils/storage';
 
 // Types
 interface BreezWalletState {
@@ -43,44 +44,28 @@ export const BreezWalletProvider: ParentComponent = (props) => {
       // Initialize Breez SDK WASM
       setState('isInitialized', true);
       
-      // Check if wallet exists
-      const walletExists = localStorage.getItem('breez_wallet_exists');
-      if (walletExists) {
+      // Check if wallet exists and attempt auto-connect
+      const walletState = loadWalletState();
+      const encryptedMnemonic = loadEncryptedMnemonic();
+      
+      if (walletState && encryptedMnemonic) {
         setState('hasWallet', true);
+        
+        try {
+          // Attempt to restore wallet automatically
+          // Note: In production, you might need to decrypt the mnemonic
+          // with a stored key or prompt for password
+          await actions.restoreWallet(encryptedMnemonic);
+          console.log('Wallet automatically restored from storage');
+        } catch (restoreError) {
+          console.error('Failed to auto-restore wallet:', restoreError);
+          setState('error', 'Failed to automatically restore wallet. Please reconnect manually.');
+        }
       }
     } catch (error) {
       console.error('Failed to initialize Breez SDK:', error);
-      setState('error', error instanceof Error ? error.message : 'Initialization failed');
+      setState('error', 'Failed to initialize wallet system');
     }
-  });
-
-  // Create effect for event listeners
-  createEffect(() => {
-    if (!state.isInitialized) return;
-
-    // Set up event listeners for wallet events
-    const handleBalanceUpdate = (event: CustomEvent) => {
-      setState('balance', event.detail.balance);
-    };
-
-    const handleConnectionChange = (event: CustomEvent) => {
-      setState('isConnected', event.detail.connected);
-    };
-
-    const handleError = (event: CustomEvent) => {
-      setState('error', event.detail.error);
-    };
-
-    window.addEventListener('breez:balance', handleBalanceUpdate as EventListener);
-    window.addEventListener('breez:connection', handleConnectionChange as EventListener);
-    window.addEventListener('breez:error', handleError as EventListener);
-
-    // Cleanup function
-    return () => {
-      window.removeEventListener('breez:balance', handleBalanceUpdate as EventListener);
-      window.removeEventListener('breez:connection', handleConnectionChange as EventListener);
-      window.removeEventListener('breez:error', handleError as EventListener);
-    };
   });
 
   // Actions
@@ -88,24 +73,23 @@ export const BreezWalletProvider: ParentComponent = (props) => {
     createWallet: async () => {
       try {
         setState('error', null);
-        
-        // Generate mnemonic (24 words)
         const mnemonic = generateMnemonic();
+        setState('mnemonic', mnemonic);
+        setState('isConnected', true);
+        setState('hasWallet', true);
         
-        // Store wallet creation flag
+        // Store wallet exists flag
         localStorage.setItem('breez_wallet_exists', 'true');
         
-        setState({
-          mnemonic,
-          hasWallet: true,
-          isConnected: true,
-        });
+        // Fetch initial balance
+        const balance = await fetchBalance();
+        setState('balance', balance);
         
         return { mnemonic };
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to create wallet';
+        const errorMessage = 'Failed to create wallet';
         setState('error', errorMessage);
-        throw error;
+        throw new Error(errorMessage);
       }
     },
 
@@ -113,22 +97,20 @@ export const BreezWalletProvider: ParentComponent = (props) => {
       try {
         setState('error', null);
         
-        // Validate mnemonic
         if (!validateMnemonic(mnemonic)) {
           throw new Error('Invalid mnemonic phrase');
         }
         
-        // Restore wallet from mnemonic
+        setState('mnemonic', mnemonic);
+        setState('isConnected', true);
+        setState('hasWallet', true);
+        
+        // Store wallet exists flag
         localStorage.setItem('breez_wallet_exists', 'true');
         
-        setState({
-          mnemonic,
-          hasWallet: true,
-          isConnected: true,
-        });
-        
-        // Refresh balance after restore
-        await actions.refreshBalance();
+        // Fetch balance
+        const balance = await fetchBalance();
+        setState('balance', balance);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to restore wallet';
         setState('error', errorMessage);
@@ -138,35 +120,26 @@ export const BreezWalletProvider: ParentComponent = (props) => {
 
     disconnect: async () => {
       try {
+        setState('isConnected', false);
+        setState('mnemonic', null);
+        setState('balance', 0);
         setState('error', null);
-        
-        // Disconnect from Breez node
-        setState({
-          isConnected: false,
-          mnemonic: null,
-          balance: 0,
-        });
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to disconnect';
-        setState('error', errorMessage);
+        console.error('Error disconnecting:', error);
         throw error;
       }
     },
 
     refreshBalance: async () => {
       try {
-        setState('error', null);
-        
         if (!state.isConnected) {
           throw new Error('Wallet not connected');
         }
         
-        // Fetch current balance from Breez SDK
         const balance = await fetchBalance();
         setState('balance', balance);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to refresh balance';
-        setState('error', errorMessage);
+        console.error('Failed to refresh balance:', error);
         throw error;
       }
     },
@@ -176,9 +149,7 @@ export const BreezWalletProvider: ParentComponent = (props) => {
         if (!state.isConnected) {
           return 0;
         }
-        
-        const balance = await fetchBalance();
-        return balance;
+        return await fetchBalance();
       } catch (error) {
         console.error('Failed to get balance:', error);
         return 0;
