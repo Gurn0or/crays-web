@@ -27,7 +27,7 @@
     "vite-plugin-node-polyfills": "^0.22.0"
   },
   "dependencies": {
-    "@breeztech/breez-sdk-spark": "^0.4.0",
+    "@breeztech/breez-sdk-spark": "^0.1.4",
     "@cashu/cashu-ts": "0.9.0",
     "@cookbook/solid-intl": "0.1.2",
     "@jukben/emoji-search": "3.0.0",
