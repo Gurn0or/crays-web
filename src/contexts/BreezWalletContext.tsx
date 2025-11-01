@@ -1,7 +1,7 @@
 import { createContext, useContext, ParentComponent, onMount } from 'solid-js';
 import { createStore } from 'solid-js/store';
 import { createEffect } from 'solid-js';
-import { loadWalletState, loadEncryptedMnemonic } from '../utils/storage';
+import { loadWalletState, loadEncryptedMnemonic } from '../lib/breez/storage';
 
 // Types
 interface BreezWalletState {
