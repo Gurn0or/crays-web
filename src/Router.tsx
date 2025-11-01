@@ -35,6 +35,7 @@ const EditProfile = lazy(() => import('./pages/EditProfile'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Mutelist = lazy(() => import('./pages/Mutelist'));
 const CreateAccount = lazy(() => import('./pages/CreateAccount')); 
+
 const NotifSettings = lazy(() => import('./pages/Settings/Notifications'));
 const Account = lazy(() => import('./pages/Settings/Account'));
 const HomeFeeds = lazy(() => import('./pages/Settings/HomeFeeds'));
@@ -51,7 +52,7 @@ const Feeds = lazy(() => import('./pages/Feeds'));
 const Feed = lazy(() => import('./pages/Feed'));
 const AdvancedSearch = lazy(() => import('./pages/AdvancedSearch'));
 const AdvancedSearchResults = lazy(() => import('./pages/AdvancedSearchResults'));
-const Streaming = lazy(() => import('./pages/Streaming'));
+const Streaming = lazy(() => import('./pages/StreamPage'));
 const CitadelPage = lazy(() => import('./pages/citadelstream'));
 const Wallet = lazy(() => import('./pages/Wallet'));
 
