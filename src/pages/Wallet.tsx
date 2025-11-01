@@ -1,5 +1,4 @@
-import Wallet from '../components/BreezWallet';
-
+import Wallet from '../components/BreezWallet/Wallet';
 export default function WalletPage() {
   return (
     <div>
