@@ -16,21 +16,18 @@ import { AppProvider } from './contexts/AppContext';
 import { ReadsProvider } from './contexts/ReadsContext';
 import { AdvancedSearchProvider } from './contexts/AdvancedSearchContext';
 import { DMProvider } from './contexts/DMContext';
+import { BreezWalletProvider } from './contexts/BreezWalletContext';
 import 'media-chrome';
 import "media-chrome/media-theme-element";
 import 'hls-video-element';
 import 'videojs-video-element';
 
-
-
 export const version = import.meta.env.PRIMAL_VERSION;
 export const APP_ID = `web_${version}_${Math.floor(Math.random()*10000000000)}`;
 
 const App: Component = () => {
-
   onMount(() => {
     connect();
-
     // if ('serviceWorker' in navigator) {
     //   navigator.serviceWorker.register('./sw.js')
     //     .then(reg => console.log('SW registered: ', reg))
@@ -48,27 +45,29 @@ const App: Component = () => {
         <Toaster>
           <MediaProvider>
             <AccountProvider>
-              <SearchProvider>
-                <AdvancedSearchProvider>
-                  <SettingsProvider>
-                    <ProfileProvider>
-                      <DMProvider>
-                        <NotificationsProvider>
-                          <ReadsProvider>
-                            <HomeProvider>
-                              <ExploreProvider>
-                                <ThreadProvider>
-                                  <AppRouter />
-                                </ThreadProvider>
-                              </ExploreProvider>
-                            </HomeProvider>
-                          </ReadsProvider>
-                        </NotificationsProvider>
-                      </DMProvider>
-                    </ProfileProvider>
-                  </SettingsProvider>
-                </AdvancedSearchProvider>
-              </SearchProvider>
+              <BreezWalletProvider>
+                <SearchProvider>
+                  <AdvancedSearchProvider>
+                    <SettingsProvider>
+                      <ProfileProvider>
+                        <DMProvider>
+                          <NotificationsProvider>
+                            <ReadsProvider>
+                              <HomeProvider>
+                                <ExploreProvider>
+                                  <ThreadProvider>
+                                    <AppRouter />
+                                  </ThreadProvider>
+                                </ExploreProvider>
+                              </HomeProvider>
+                            </ReadsProvider>
+                          </NotificationsProvider>
+                        </DMProvider>
+                      </ProfileProvider>
+                    </SettingsProvider>
+                  </AdvancedSearchProvider>
+                </SearchProvider>
+              </BreezWalletProvider>
             </AccountProvider>
           </MediaProvider>
         </Toaster>
