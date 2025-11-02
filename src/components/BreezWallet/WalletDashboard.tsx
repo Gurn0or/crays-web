@@ -1,5 +1,4 @@
-import { Component, createSignal, createEffect, For, Show } from 'solid-js';
-import { useBreezWallet } from '../../contexts/BreezWalletContext';
+import { Component, For, Show, createEffect, createMemo, createSignal } from 'solid-js';
 
 interface Transaction {
   id: string;
@@ -10,58 +9,30 @@ interface Transaction {
   description?: string;
 }
 
-const WalletDashboard: Component = () => {
-  const breezWallet = useBreezWallet();
+interface WalletDashboardProps {
+  balance: number;
+  isConnected: boolean;
+  onSend: () => void;
+  onReceive: () => void;
+  onRefresh?: () => Promise<void> | void;
+}
+
+const WalletDashboard: Component<WalletDashboardProps> = (props) => {
   const [showSats, setShowSats] = createSignal(true);
-  const [isLoading, setIsLoading] = createSignal(true);
-  const [balance, setBalance] = createSignal(0);
-  const [transactions, setTransactions] = createSignal<Transaction[]>([]);
+  const [isRefreshing, setIsRefreshing] = createSignal(false);
+  const [transactions] = createSignal<Transaction[]>([]);
   const [connectionStatus, setConnectionStatus] = createSignal<'connected' | 'disconnected' | 'connecting'>('connecting');
 
-  // Initialize and listen to Breez events
   createEffect(() => {
-    const initWallet = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Get initial balance
-        const walletBalance = await breezWallet?.getBalance();
-        if (walletBalance !== undefined) {
-          setBalance(walletBalance);
-        }
-        
-        // Get transaction history
-        const txHistory = await breezWallet?.getTransactions();
-        if (txHistory) {
-          setTransactions(txHistory as Transaction[]);
-        }
-        
-        // Listen for payment events
-        breezWallet?.addEventListener('payment', (event) => {
-          console.log('Payment event:', event);
-          // Refresh balance and transactions
-          initWallet();
-        });
-
-        setConnectionStatus('connected');
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Failed to initialize wallet:', error);
-        setConnectionStatus('disconnected');
-        setIsLoading(false);
-      }
-    };
-
-    if (breezWallet) {
-      initWallet();
-    }
+    setConnectionStatus(props.isConnected ? 'connected' : 'disconnected');
   });
+
+  const isLoading = createMemo(() => connectionStatus() === 'connecting' || isRefreshing());
 
   const formatBalance = (sats: number): string => {
     if (showSats()) {
       return `${sats.toLocaleString()} sats`;
     }
-    // Convert sats to BTC (1 BTC = 100,000,000 sats)
     const btc = sats / 100000000;
     return `${btc.toFixed(8)} BTC`;
   };
@@ -72,7 +43,7 @@ const WalletDashboard: Component = () => {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     }).format(date);
   };
 
@@ -89,9 +60,18 @@ const WalletDashboard: Component = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    if (!props.onRefresh) return;
+    try {
+      setIsRefreshing(true);
+      await props.onRefresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <div class="wallet-dashboard">
-      {/* Header */}
       <div class="dashboard-header">
         <h1>Breez Wallet</h1>
         <div class="connection-status">
@@ -100,54 +80,65 @@ const WalletDashboard: Component = () => {
         </div>
       </div>
 
-      {/* Balance Card */}
       <div class="balance-card">
         <div class="balance-header">
           <h2>Balance</h2>
-          <button 
-            class="toggle-unit-btn"
-            onClick={() => setShowSats(!showSats())}
-          >
-            {showSats() ? 'Show BTC' : 'Show Sats'}
-          </button>
+          <div class="balance-actions">
+            <button
+              class="toggle-unit-btn"
+              onClick={() => setShowSats(!showSats())}
+            >
+              {showSats() ? 'Show BTC' : 'Show Sats'}
+            </button>
+            <Show when={props.onRefresh}>
+              <button
+                class="refresh-btn"
+                classList={{ loading: isRefreshing() }}
+                onClick={handleRefresh}
+                disabled={isRefreshing()}
+              >
+                {isRefreshing() ? 'Refreshing…' : 'Refresh'}
+              </button>
+            </Show>
+          </div>
         </div>
         <div class="balance-amount">
           <Show
             when={!isLoading()}
             fallback={<div class="loading-spinner">Loading...</div>}
           >
-            {formatBalance(balance())}
+            {formatBalance(props.balance)}
           </Show>
         </div>
       </div>
 
-      {/* Quick Actions */}
       <div class="quick-actions">
-        <button 
+        <button
           class="action-btn primary"
-          onClick={() => breezWallet?.openReceiveDialog()}
-          disabled={connectionStatus() !== 'connected'}
+          onClick={props.onReceive}
+          disabled={!props.isConnected}
         >
           <span class="icon">↓</span>
           Receive
         </button>
-        <button 
+        <button
           class="action-btn primary"
-          onClick={() => breezWallet?.openSendDialog()}
-          disabled={connectionStatus() !== 'connected' || balance() === 0}
+          onClick={props.onSend}
+          disabled={!props.isConnected || props.balance === 0}
         >
           <span class="icon">↑</span>
           Send
         </button>
       </div>
 
-      {/* Transactions List */}
       <div class="transactions-section">
         <div class="section-header">
           <h2>Recent Transactions</h2>
-          <button class="view-all-btn">View All</button>
+          <button class="view-all-btn" disabled>
+            View All
+          </button>
         </div>
-        
+
         <div class="transactions-list">
           <Show
             when={!isLoading()}
@@ -198,14 +189,34 @@ const WalletDashboard: Component = () => {
         </div>
       </div>
 
-      {/* Wallet Info */}
-      <div class="wallet-info">
-        <button class="info-btn" onClick={() => breezWallet?.openSettings()}>
-          ⚙️ Settings
-        </button>
-        <button class="info-btn" onClick={() => breezWallet?.exportLogs()}>
-          📄 Export Logs
-        </button>
+      <div class="node-info">
+        <h2>Node Status</h2>
+        <div class="status-cards">
+          <div class="status-card">
+            <span class="status-label">Connection</span>
+            <span class={`status-value ${connectionStatus()}`}>
+              {connectionStatus() === 'connected' ? 'Connected' : 'Disconnected'}
+            </span>
+          </div>
+          <div class="status-card">
+            <span class="status-label">Last Sync</span>
+            <span class="status-value">Just now</span>
+          </div>
+          <div class="status-card">
+            <span class="status-label">Network</span>
+            <span class="status-value">Lightning</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="help-section">
+        <h2>Need Help?</h2>
+        <ul>
+          <li>• Create a new wallet or restore an existing one using your mnemonic phrase.</li>
+          <li>• Receive funds by generating a Lightning invoice.</li>
+          <li>• Send payments instantly with Lightning invoices or LNURL.</li>
+          <li>• Keep your mnemonic phrase safe – it's the only way to recover your wallet.</li>
+        </ul>
       </div>
     </div>
   );

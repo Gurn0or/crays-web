@@ -1,4 +1,4 @@
-import { Component, Show, createSignal } from 'solid-js';
+import { Component, Show, createMemo, createSignal } from 'solid-js';
 import { useBreezWallet } from '../../contexts/BreezWalletContext';
 import WalletSetup from './WalletSetup';
 import WalletDashboard from './WalletDashboard';
@@ -6,9 +6,13 @@ import SendModal from './SendModal';
 import ReceiveModal from './ReceiveModal';
 
 const Wallet: Component = () => {
-  const wallet = useBreezWallet();
+  const [walletState, walletActions] = useBreezWallet();
   const [sendOpen, setSendOpen] = createSignal(false);
   const [receiveOpen, setReceiveOpen] = createSignal(false);
+
+  const hasWallet = createMemo(() => walletState.hasWallet);
+  const isConnected = createMemo(() => walletState.isConnected);
+  const walletBalance = createMemo(() => walletState.balance ?? 0);
 
   const handleSendOpen = () => setSendOpen(true);
   const handleSendClose = () => setSendOpen(false);
@@ -17,34 +21,30 @@ const Wallet: Component = () => {
 
   return (
     <div class="wallet-container">
-      <Show when={wallet.error}>
+      <Show when={walletState.error}>
         <div class="wallet-error" role="alert">
-          <p>Error initializing wallet: {wallet.error}</p>
+          <p>Error initializing wallet: {walletState.error}</p>
         </div>
       </Show>
 
-      <Show 
-        when={!wallet.hasWallet()} 
-        fallback={
-          <Show when={wallet.connected()}>
-            <WalletDashboard
-              balance={wallet.balance()}
-              address={wallet.address()}
-              onSend={handleSendOpen}
-              onReceive={handleReceiveOpen}
-            />
-          </Show>
-        }
+      <Show
+        when={hasWallet()}
+        fallback={<WalletSetup />}
       >
-        <WalletSetup />
+        <WalletDashboard
+          balance={walletBalance()}
+          isConnected={isConnected()}
+          onSend={handleSendOpen}
+          onReceive={handleReceiveOpen}
+          onRefresh={walletActions.refreshBalance}
+        />
       </Show>
 
       <Show when={sendOpen()}>
         <SendModal
           isOpen={sendOpen()}
           onClose={handleSendClose}
-          balance={wallet.balance()}
-          onSend={wallet.sendPayment}
+          balanceSats={walletBalance()}
         />
       </Show>
 
@@ -52,8 +52,6 @@ const Wallet: Component = () => {
         <ReceiveModal
           isOpen={receiveOpen()}
           onClose={handleReceiveClose}
-          address={wallet.address()}
-          onGenerateInvoice={wallet.generateInvoice}
         />
       </Show>
     </div>
