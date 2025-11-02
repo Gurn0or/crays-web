@@ -5,7 +5,6 @@ import { useAccountContext } from '../../contexts/AccountContext';
 import { useNotificationsContext } from '../../contexts/NotificationsContext';
 import { navBar as t, actions as tActions, placeholders as tPlaceholders } from '../../translations';
 import NavLink from '../NavLink/NavLink';
-
 import styles from './NavPhone.module.scss';
 import { hookForDev } from '../../lib/devTools';
 import ButtonPrimary from '../Buttons/ButtonPrimary';
@@ -27,7 +26,7 @@ const NavPhone: Component< { id?: string } > = (props) => {
   const links = [
     {
       type: 'link',
-      to: '/home',
+      to: '/',
       label: intl.formatMessage(t.home),
       icon: 'homeIcon',
     },
@@ -45,60 +44,92 @@ const NavPhone: Component< { id?: string } > = (props) => {
     },
     {
       type: 'link',
-      to: '/downloads',
-      label: intl.formatMessage(t.downloads),
-      icon: 'downloadIcon',
-      bubble: () => notifications?.downloadsCount || 0,
-    }, 
+      to: '/notifications',
+      label: intl.formatMessage(t.notifications),
+      icon: 'notificationsIcon',
+      bubble: () => notifications?.notificationCount || undefined,
+    },
+    {
+      type: 'link',
+      to: '/messages',
+      label: intl.formatMessage(t.messages),
+      icon: 'messagesIcon',
+      bubble: () => dms?.unseenCount || undefined,
+    },
     {
       type: 'menu',
+      icon: 'menuIcon',
       links: [
-        // {
-        //   type: 'link',
-        //   to: '/dms',
-        //   label: intl.formatMessage(t.messages),
-        //   icon: 'messagesIcon',
-        //   bubble: () => dms?.dmCount || 0,
-        // },
         {
-          type: 'link',
           to: '/bookmarks',
           label: intl.formatMessage(t.bookmarks),
-          icon: 'bookmarkIcon',
+          icon: 'bookmarksIcon',
         },
         {
-          type: 'link',
-          to: '/notifications',
-          label: intl.formatMessage(t.notifications),
-          icon: 'notificationsIcon',
-          bubble: () => notifications?.notificationCount || 0,
-          hiddenOnSmallScreens: true,
+          to: `/p/${account?.publicKey}`,
+          label: intl.formatMessage(t.profile),
+          icon: 'profileIcon',
         },
         {
-          type: 'link',
           to: '/settings',
           label: intl.formatMessage(t.settings),
           icon: 'settingsIcon',
-          hiddenOnSmallScreens: true,
-          bubble: () => account?.sec ? 1 : 0,
+        },
+        {
+          to: '/downloads',
+          label: intl.formatMessage(t.downloads),
+          icon: 'downloadsIcon',
+        },
+        {
+          to: '/help',
+          label: intl.formatMessage(t.help),
+          icon: 'helpIcon',
         },
       ]
-    },
+    }
   ];
 
-  const isBigScreen = () => (media?.windowSize.w || 0) > 1300;
+  const doUpload = () => {
+    media?.actions.selectFile();
+  };
 
-  const noReadsConfirm: ConfirmInfo = {
-    title: "Coming Soon",
-    description: "Primal does not have article creation capabilities yet. We recommend Highlighter to content creators. Would you like to try it?",
-    confirmLabel: "Yes, go to Highlighter",
-    abortLabel: "No Thanks",
-    onConfirm: () => {
-      window.open('https://highlighter.com', '_blank')?.focus();
-    },
-    onAbort: () => {
+  const doLogout = () => {
+    const conf: ConfirmInfo = {
+      onOk: () => {
+        account?.actions.logout();
+      },
+      title: intl.formatMessage(tActions.logoutConfirm),
+      description: intl.formatMessage(tActions.logoutConfirmDesc),
+    };
+
+    app?.actions.openConfirmModal(conf);
+  };
+
+  const logoutAction = () => {
+    return app?.data.isConfirmModalVisible ? (
+      <>
+        <ButtonPrimary
+          onClick={() => app?.actions.executeConfirm()}
+        >
+          {intl.formatMessage(tActions.confirm)}
+        </ButtonPrimary>
+        <ButtonPrimary
+          onClick={() => app?.actions.closeConfirmModal()}
+        >
+          {intl.formatMessage(tActions.cancel)}
+        </ButtonPrimary>
+      </>
+    ) : (
+      <ButtonPrimary onClick={doLogout}>
+        {intl.formatMessage(tActions.logout)}
+      </ButtonPrimary>
+    );
+  };
+
+  const cancelConfirm = () => {
+    if (app?.data.isConfirmModalVisible) {
       app?.actions.closeConfirmModal();
-    },
+    }
   };
 
   return (
