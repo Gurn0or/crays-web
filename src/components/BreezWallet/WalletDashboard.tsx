@@ -1,5 +1,5 @@
 import { Component, createSignal, createEffect, For, Show } from 'solid-js';
-import { useBreezWallet } from '../../hooks/useBreezWallet';
+import { useBreezWallet } from '../../contexts/BreezWalletContext';
 import './WalletDashboard.css';
 
 interface Transaction {
@@ -146,18 +146,21 @@ const WalletDashboard: Component = () => {
         </span>
       </div>
 
-      <Show when={!isLoading()} fallback={
-        <div class="loading-container">
-          <div class="loading-spinner"></div>
-          <p class="loading-text">Loading wallet...</p>
-        </div>
-      }>
+      <Show
+        when={!isLoading()}
+        fallback={
+          <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">Loading wallet...</p>
+          </div>
+        }
+      >
         <div class="dashboard-grid">
           {/* Balance Display */}
           <section class="balance-card">
             <div class="balance-card__header">
               <h2 class="balance-card__title">Total Balance</h2>
-              <button 
+              <button
                 class="balance-toggle"
                 onClick={() => setShowSats(!showSats())}
                 aria-label="Toggle between sats and BTC"
@@ -178,37 +181,37 @@ const WalletDashboard: Component = () => {
 
           {/* Quick Actions */}
           <section class="quick-actions">
-            <button 
+            <button
               class="action-button action-button--send"
               onClick={handleSend}
               disabled={connectionStatus() !== 'connected'}
             >
               <svg class="action-button__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M12 19V5M5 12l7-7 7 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 19V5M5 12l7-7 7 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
-              <span>Send</span>
+              Send
             </button>
 
-            <button 
+            <button
               class="action-button action-button--receive"
               onClick={handleReceive}
               disabled={connectionStatus() !== 'connected'}
             >
               <svg class="action-button__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M12 5v14M5 12l7 7 7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 5v14M5 12l7 7 7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
-              <span>Receive</span>
+              Receive
             </button>
 
-            <button 
+            <button
               class="action-button action-button--settings"
               onClick={handleSettings}
             >
               <svg class="action-button__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
-              <span>Settings</span>
+              Settings
             </button>
           </section>
 
@@ -219,8 +222,8 @@ const WalletDashboard: Component = () => {
             <Show when={transactions().length > 0} fallback={
               <div class="empty-state">
                 <svg class="empty-state__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <rect x="3" y="3" width="18" height="18" rx="2" stroke-width="2"/>
-                  <path d="M9 3v18M3 9h6M3 15h6" stroke-width="2"/>
+                  <rect x="3" y="3" width="18" height="18" rx="2" stroke-width="2" />
+                  <path d="M9 3v18M3 9h6M3 15h6" stroke-width="2" />
                 </svg>
                 <h4 class="empty-state__title">No transactions yet</h4>
                 <p class="empty-state__description">
@@ -231,18 +234,18 @@ const WalletDashboard: Component = () => {
               <ul class="transactions-list">
                 <For each={transactions()}>
                   {(tx) => (
-                    <li class={`transaction-item transaction-item--${tx.type}`}>
+                    <li class={`transaction-item transaction-item--${tx.status}`}>
                       <div class="transaction-item__icon-wrapper">
-                        <svg 
+                        <svg
                           class={`transaction-item__icon transaction-item__icon--${tx.type}`}
                           viewBox="0 0 24 24" 
                           fill="none" 
                           stroke="currentColor"
                         >
                           {tx.type === 'incoming' ? (
-                            <path d="M12 5v14M5 12l7 7 7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M12 5v14M5 12l7 7 7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                           ) : (
-                            <path d="M12 19V5M5 12l7-7 7 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M12 19V5M5 12l7-7 7 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                           )}
                         </svg>
                       </div>
