@@ -22,18 +22,23 @@ const Wallet: Component = () => {
           <p>Error initializing wallet: {wallet.error}</p>
         </div>
       </Show>
-      <Show when={!wallet.hasWallet()} fallback={
-        <Show when={wallet.connected()}>
-          <WalletDashboard
-            balance={wallet.balance()}
-            address={wallet.address()}
-            onSend={handleSendOpen}
-            onReceive={handleReceiveOpen}
-          />
-        </Show>
-      }>
+
+      <Show 
+        when={!wallet.hasWallet()} 
+        fallback={
+          <Show when={wallet.connected()}>
+            <WalletDashboard
+              balance={wallet.balance()}
+              address={wallet.address()}
+              onSend={handleSendOpen}
+              onReceive={handleReceiveOpen}
+            />
+          </Show>
+        }
+      >
         <WalletSetup />
       </Show>
+
       <Show when={sendOpen()}>
         <SendModal
           isOpen={sendOpen()}
@@ -42,6 +47,7 @@ const Wallet: Component = () => {
           onSend={wallet.sendPayment}
         />
       </Show>
+
       <Show when={receiveOpen()}>
         <ReceiveModal
           isOpen={receiveOpen()}
