@@ -86,7 +86,7 @@ const WalletDashboard: Component<WalletDashboardProps> = (props) => {
   return (
     <div class={styles.dashboard}>
       <div class={styles.gridRow}>
-        <section class={cn(styles.card, styles.gridCol-12)}>
+        <section class={cn(styles.card, styles.gridCol12)}>
           <div class={styles.dashboardHeader}>
             <div>
               <h1>Breez Wallet</h1>
@@ -233,7 +233,7 @@ const WalletDashboard: Component<WalletDashboardProps> = (props) => {
         </section>
       </div>
 
-      <section class={cn(styles.card, styles.gridCol-12)}>
+      <section class={cn(styles.card, styles.gridCol12)}>
         <h2 class={styles.sectionTitle}>Node status</h2>
         <div class={styles.nodeStatusGrid}>
           <div class={styles.nodeStatusCard}>
@@ -253,7 +253,7 @@ const WalletDashboard: Component<WalletDashboardProps> = (props) => {
         </div>
       </section>
 
-      <section class={cn(styles.card, styles.gridCol-12, styles.helpSection)}>
+      <section class={cn(styles.card, styles.gridCol12, styles.helpSection)}>
         <h2 class={styles.sectionTitle}>Need help?</h2>
         <ul class={styles.helpList}>
           <li>Create or restore your wallet with your mnemonic phrase.</li>
