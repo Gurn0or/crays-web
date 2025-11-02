@@ -104,9 +104,15 @@ const Layout: Component<any> = (props) => {
     }
   });
 
+  const standaloneRoutes = new Set<string>([
+    '/landing',
+  ]);
+
+  const shouldUseStandaloneLayout = () => standaloneRoutes.has(location.pathname);
+
   return (
     <Show
-      when={location.pathname !== '/'}
+      when={!shouldUseStandaloneLayout()}
       fallback={<>
         <div id="modal" class={styles.modal}></div>
         {props.children}
