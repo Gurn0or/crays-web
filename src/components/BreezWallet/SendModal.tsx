@@ -1,18 +1,15 @@
 import { createSignal, Show } from "solid-js";
-import { breezService } from "@/services/breezService";
+import { getBreezService } from "../../lib/breez/breezService";
 import { decode } from "light-bolt11-decoder";
-
 // Simple helpers for sats/BTC conversion
 const SATS_PER_BTC = 100_000_000;
 const satsToBtc = (sats: number) => (sats ? sats / SATS_PER_BTC : 0);
 const btcToSats = (btc: number) => Math.round(btc * SATS_PER_BTC);
-
 export type SendModalProps = {
   isOpen: boolean;
   onClose: () => void;
   balanceSats: number; // user's spendable balance in sats
 };
-
 // A very lightweight QR picker placeholder. Replace with a real scanner component if available.
 function QrScanButton(props: { onResult: (text: string) => void }) {
   let inputRef: HTMLInputElement | undefined;
@@ -28,27 +25,23 @@ function QrScanButton(props: { onResult: (text: string) => void }) {
     </button>
   );
 }
-
 export default function SendModal(props: SendModalProps) {
   // Step control
   const [step, setStep] = createSignal<"form" | "confirm" | "sending" | "success" | "error">("form");
-
   // Inputs
   const [invoiceOrAddress, setInvoiceOrAddress] = createSignal("");
-  const [amountSats, setAmountSats] = createSignal<number | undefined>(undefined);
+  const [amountSats, setAmountSats] = createSignal<number>(undefined as any);
   const [amountBtcStr, setAmountBtcStr] = createSignal("");
   const [memo, setMemo] = createSignal("");
-
   // Derived / info
-  const [decoded, setDecoded] = createSignal<any | null>(null);
+  const [decoded, setDecoded] = createSignal<any>(null);
   const [feeEstimateSats, setFeeEstimateSats] = createSignal<number | null>(null);
   const [errorMsg, setErrorMsg] = createSignal<string | null>(null);
-  const [txDetails, setTxDetails] = createSignal<any | null>(null);
-
+  const [txDetails, setTxDetails] = createSignal<any>(null);
   const reset = () => {
     setStep("form");
     setInvoiceOrAddress("");
-    setAmountSats(undefined);
+    setAmountSats(undefined as any);
     setAmountBtcStr("");
     setMemo("");
     setDecoded(null);
@@ -56,12 +49,10 @@ export default function SendModal(props: SendModalProps) {
     setErrorMsg(null);
     setTxDetails(null);
   };
-
   const closeAndReset = () => {
     reset();
     props.onClose?.();
   };
-
   const decodeInvoiceIfNeeded = (value: string) => {
     try {
       const val = value.trim();
@@ -103,17 +94,15 @@ export default function SendModal(props: SendModalProps) {
       setDecoded(null);
     }
   };
-
   const onInvoiceChange = (v: string) => {
     setInvoiceOrAddress(v);
     decodeInvoiceIfNeeded(v);
   };
-
   // Amount handling
   const onSatsChange = (v: string) => {
     const n = Number(v.replace(/[^\d.]/g, ""));
     if (Number.isFinite(n)) {
-      setAmountSats(Number.isNaN(n) ? undefined : Math.floor(n));
+      setAmountSats(Number.isNaN(n) ? (undefined as any) : Math.floor(n));
       setAmountBtcStr(n ? String(satsToBtc(n)) : "");
     }
   };
@@ -121,10 +110,9 @@ export default function SendModal(props: SendModalProps) {
     setAmountBtcStr(v);
     const n = Number(v.replace(/[^\d.]/g, ""));
     if (Number.isFinite(n)) {
-      setAmountSats(n ? btcToSats(n) : undefined);
+      setAmountSats(n ? btcToSats(n) : (undefined as any));
     }
   };
-
   const canProceed = () => {
     const inv = invoiceOrAddress().trim();
     const amt = amountSats();
@@ -133,7 +121,6 @@ export default function SendModal(props: SendModalProps) {
     if (amt > props.balanceSats) return false;
     return true;
   };
-
   // Dummy fee estimate: 0.3% of amount with a min 1 sat. Replace with real API if available.
   const refreshFeeEstimate = () => {
     const amt = amountSats() || 0;
@@ -144,19 +131,16 @@ export default function SendModal(props: SendModalProps) {
     const est = Math.max(1, Math.round(amt * 0.003));
     setFeeEstimateSats(est);
   };
-
   // Keep fee estimate updated when amount changes
   const handleAmountInputBlur = () => {
     refreshFeeEstimate();
   };
-
   const goToConfirm = () => {
     setErrorMsg(null);
     if (!canProceed()) return;
     refreshFeeEstimate();
     setStep("confirm");
   };
-
   const submitPayment = async () => {
     setStep("sending");
     setErrorMsg(null);
@@ -165,9 +149,9 @@ export default function SendModal(props: SendModalProps) {
       const inv = invoiceOrAddress().trim();
       const amt = amountSats();
       const note = memo().trim();
-
-      // breezService.payInvoice may accept the invoice and optional amount for zero-amount invoices
-      const res = await breezService.payInvoice(inv, amt ?? undefined, note || undefined);
+      // getBreezService().payInvoice may accept the invoice and optional amount for zero-amount invoices
+      const service = getBreezService();
+      const res = await service.payInvoice(inv, amt ?? undefined, note || undefined);
       setTxDetails(res);
       setStep("success");
     } catch (e: any) {
@@ -175,31 +159,27 @@ export default function SendModal(props: SendModalProps) {
       setStep("error");
     }
   };
-
   const Summary = () => (
     <div class="space-y-2 text-sm">
-      <div class="flex justify-between"><span>Invoice/Address</span><span class="truncate max-w-[60%]" title={invoiceOrAddress()}>{invoiceOrAddress()}</span></div>
-      <div class="flex justify-between"><span>Amount</span><span>{amountSats()} sats ({satsToBtc(amountSats()||0)} BTC)</span></div>
+      <div class="flex justify-between">Invoice/Address<span class="truncate max-w-[60%]" title={invoiceOrAddress()}>{invoiceOrAddress()}</span></div>
+      <div class="flex justify-between">Amount{amountSats()} sats ({satsToBtc(amountSats()||0)} BTC)</div>
       <Show when={memo().trim()}>
-        <div class="flex justify-between"><span>Memo</span><span class="truncate max-w-[60%]" title={memo()}>{memo()}</span></div>
+        <div class="flex justify-between">Memo<span class="truncate max-w-[60%]" title={memo()}>{memo()}</span></div>
       </Show>
-      <Show when={feeEstimateSats() !== null}>
-        <div class="flex justify-between"><span>Estimated fee</span><span>{feeEstimateSats()} sats</span></div>
+      <Show when={feeEstimateSats()}>
+        <div class="flex justify-between">Estimated fee{feeEstimateSats()} sats</div>
       </Show>
-      <div class="flex justify-between font-medium border-t pt-2"><span>Total (est.)</span><span>{(amountSats()||0)+(feeEstimateSats()||0)} sats</span></div>
+      <div class="flex justify-between font-medium border-t pt-2">Total (est.){(amountSats()||0)+(feeEstimateSats()||0)} sats</div>
     </div>
   );
-
   if (!props.isOpen) return null as any;
-
   return (
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div class="w-full max-w-md rounded-lg bg-white shadow-lg p-4">
         <div class="flex items-center justify-between mb-3">
           <h2 class="text-lg font-semibold">Send Payment</h2>
-          <button class="text-gray-500 hover:text-black" onClick={closeAndReset} aria-label="Close">✕</button>
+          <button aria-label="Close" class="text-gray-500 hover:text-black" onClick={closeAndReset}>✕</button>
         </div>
-
         <Show when={step()==="form"}>
           <div class="space-y-4">
             <div class="space-y-1">
@@ -212,54 +192,47 @@ export default function SendModal(props: SendModalProps) {
                 <p class="text-xs text-gray-500">Invoice detected and decoded.</p>
               </Show>
             </div>
-
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label class="text-sm font-medium">Amount (sats)</label>
-                <input class="w-full border rounded px-3 py-2" inputmode="numeric" placeholder="e.g. 2100" value={amountSats() ?? ""} onInput={(e) => onSatsChange((e.currentTarget as HTMLInputElement).value)} onBlur={handleAmountInputBlur} />
+                <input class="w-full border rounded px-3 py-2" inputMode="numeric" placeholder="e.g. 2100" value={amountSats() as any} onInput={(e) => onSatsChange((e.currentTarget as HTMLInputElement).value)} onBlur={handleAmountInputBlur} />
               </div>
               <div>
                 <label class="text-sm font-medium">Amount (BTC)</label>
-                <input class="w-full border rounded px-3 py-2" inputmode="decimal" placeholder="e.g. 0.000021" value={amountBtcStr()} onInput={(e) => onBtcChange((e.currentTarget as HTMLInputElement).value)} onBlur={handleAmountInputBlur} />
+                <input class="w-full border rounded px-3 py-2" inputMode="decimal" placeholder="e.g. 0.000021" value={amountBtcStr()} onInput={(e) => onBtcChange((e.currentTarget as HTMLInputElement).value)} onBlur={handleAmountInputBlur} />
               </div>
             </div>
             <Show when={(amountSats()||0) > props.balanceSats}>
               <p class="text-sm text-red-600">Amount exceeds available balance of {props.balanceSats} sats.</p>
             </Show>
-
             <div class="space-y-1">
               <label class="text-sm font-medium">Memo (optional)</label>
-              <input class="w-full border rounded px-3 py-2" placeholder="Add a note" value={memo()} onInput={(e)=> setMemo((e.currentTarget as HTMLInputElement).value)} />
+              <input class="w-full border rounded px-3 py-2" placeholder="Add a note" value={memo()} onInput={(e) => setMemo((e.currentTarget as HTMLInputElement).value)} />
             </div>
-
             <Show when={feeEstimateSats()!==null}>
               <div class="text-sm text-gray-700">Estimated fee: {feeEstimateSats()} sats</div>
             </Show>
-
             <div class="flex justify-end gap-2 pt-2">
               <button class="px-3 py-2 rounded border" onClick={closeAndReset}>Cancel</button>
               <button class="px-3 py-2 rounded bg-blue-600 text-white disabled:opacity-50" disabled={!canProceed()} onClick={goToConfirm}>Review</button>
             </div>
           </div>
         </Show>
-
         <Show when={step()==="confirm"}>
           <div class="space-y-4">
             <Summary />
             <div class="flex justify-end gap-2 pt-2">
-              <button class="px-3 py-2 rounded border" onClick={()=> setStep("form")}>Back</button>
+              <button class="px-3 py-2 rounded border" onClick={() => setStep("form")}>Back</button>
               <button class="px-3 py-2 rounded bg-blue-600 text-white" onClick={submitPayment}>Confirm and Pay</button>
             </div>
           </div>
         </Show>
-
         <Show when={step()==="sending"}>
           <div class="flex flex-col items-center gap-2 py-6">
             <div class="animate-spin h-6 w-6 rounded-full border-2 border-gray-300 border-t-blue-600"></div>
             <p class="text-sm text-gray-700">Sending payment...</p>
           </div>
         </Show>
-
         <Show when={step()==="success"}>
           <div class="space-y-3">
             <h3 class="text-green-700 font-medium">Payment sent successfully</h3>
@@ -271,7 +244,6 @@ export default function SendModal(props: SendModalProps) {
             </div>
           </div>
         </Show>
-
         <Show when={step()==="error"}>
           <div class="space-y-3">
             <h3 class="text-red-700 font-medium">Payment failed</h3>
@@ -279,7 +251,7 @@ export default function SendModal(props: SendModalProps) {
               <div class="text-sm text-red-600">{errorMsg()}</div>
             </Show>
             <div class="flex justify-end gap-2">
-              <button class="px-3 py-2 rounded border" onClick={()=> setStep("form")}>Back</button>
+              <button class="px-3 py-2 rounded border" onClick={() => setStep("form")}>Back</button>
               <button class="px-3 py-2 rounded bg-blue-600 text-white" onClick={submitPayment}>Retry</button>
             </div>
           </div>
