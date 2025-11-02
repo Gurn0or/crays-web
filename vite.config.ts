@@ -42,13 +42,13 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'breez-sdk': ['@breeztech/breez-sdk-wasm']
+          'breez-sdk': ['@breeztech/breez-sdk-spark']
         }
       }
     }
   },
   optimizeDeps: {
-    exclude: ['@breeztech/breez-sdk-wasm']
+    exclude: ['@breeztech/breez-sdk-spark']
   },
   envPrefix: 'PRIMAL_',
   define: {
