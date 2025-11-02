@@ -16,6 +16,9 @@ export interface WalletState {
  * @returns boolean indicating success
  */
 export function saveEncryptedMnemonic(encrypted: EncryptedData): boolean {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return false;
+  }
   try {
     localStorage.setItem(ENCRYPTED_MNEMONIC_KEY, JSON.stringify(encrypted));
     return true;
@@ -30,6 +33,9 @@ export function saveEncryptedMnemonic(encrypted: EncryptedData): boolean {
  * @returns The encrypted data or null if not found
  */
 export function loadEncryptedMnemonic(): EncryptedData | null {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return null;
+  }
   try {
     const data = localStorage.getItem(ENCRYPTED_MNEMONIC_KEY);
     if (!data) return null;
@@ -45,6 +51,9 @@ export function loadEncryptedMnemonic(): EncryptedData | null {
  * @returns boolean indicating success
  */
 export function removeEncryptedMnemonic(): boolean {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return false;
+  }
   try {
     localStorage.removeItem(ENCRYPTED_MNEMONIC_KEY);
     return true;
@@ -60,6 +69,9 @@ export function removeEncryptedMnemonic(): boolean {
  * @returns boolean indicating success
  */
 export function saveWalletState(state: WalletState): boolean {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return false;
+  }
   try {
     localStorage.setItem(WALLET_STATE_KEY, JSON.stringify(state));
     return true;
@@ -74,6 +86,9 @@ export function saveWalletState(state: WalletState): boolean {
  * @returns The wallet state or null if not found
  */
 export function loadWalletState(): WalletState | null {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return null;
+  }
   try {
     const data = localStorage.getItem(WALLET_STATE_KEY);
     if (!data) return null;

@@ -29,6 +29,27 @@
   gap: 0.5rem;
 }
 
+.wallet-retry {
+  align-self: flex-start;
+  background: #dc2626;
+  border: none;
+  border-radius: 0.5rem;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  transition: background 0.2s ease-in-out;
+}
+
+.wallet-retry:hover {
+  background: #b91c1c;
+}
+
+.wallet-retry:focus-visible {
+  outline: 2px solid rgba(220, 38, 38, 0.35);
+  outline-offset: 2px;
+}
+
 .wallet-loading {
   display: flex;
   flex-direction: column;
