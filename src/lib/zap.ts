@@ -41,14 +41,17 @@ export const zapOverNWC = async (pubkey: string, nwcEnc: string, invoice: string
       const relay = relayInit(url);
       await relay.connect();
       relays.push(relay);
+
       promises.push(
         new Promise<boolean>((resolve) => {
           let resolved = false;
           const sub = relay.sub([{ kinds: [23195], authors: [nwcConfig.pubkey] }]);
+
           sub.on('event', async (event: NostrRelaySignedEvent) => {
             try {
               const response = await nip04.decrypt(nwcConfig.secret, nwcConfig.pubkey, event.content);
               const resp = JSON.parse(response);
+
               if (resp.result_type === 'pay_invoice' && resp.result && !resolved) {
                 resolved = true;
                 result = true;
@@ -66,6 +69,7 @@ export const zapOverNWC = async (pubkey: string, nwcEnc: string, invoice: string
               }
             }
           });
+
           setTimeout(() => {
             if (!resolved) {
               resolved = true;
@@ -74,6 +78,7 @@ export const zapOverNWC = async (pubkey: string, nwcEnc: string, invoice: string
           }, 30000);
         })
       );
+
       await relay.publish(signed);
     }
 
@@ -161,39 +166,50 @@ export const zapStream = async (
   if (!sender || !host) {
     return { success: false } as any;
   }
+
   const callback = await getZapEndpoint(host);
+
   if (!callback) {
     return { success: false } as any;
   }
+
   const a = `${Kind.LiveEvent}:${stream.pubkey}:${stream.id}`;
   const sats = Math.round(amount * 1000);
+
   let payload: any = {
     profile: host.pubkey,
     event: stream.event?.id || null,
     amount: sats,
     relays: relays.map(r => r.url),
   };
+
   if (comment.length > 0) {
     // @ts-ignore
     payload.comment = comment;
   }
+
   const zapReq = nip57.makeZapRequest(payload);
+
   if (!zapReq.tags.find((t: string[]) => t[0] === 'a' && t[1] === a)) {
     zapReq.tags.push(['a', a]);
   }
+
   try {
     const signedEvent = await signEvent(zapReq);
     const event = encodeURIComponent(JSON.stringify(signedEvent));
     const r2 = await (await fetch(`${callback}?amount=${sats}&nostr=${event}`)).json();
     const pr = r2.pr;
+
     if (useBreez) {
       const breezPaid = await payWithBreez(pr);
       if (breezPaid) return { success: true, event: signedEvent } as any;
     }
+
     if (nwc && nwc[1] && nwc[1].length > 0) {
       const success = await zapOverNWC(sender, nwc[1], pr);
       return { success, event: signedEvent } as any;
     }
+
     await enableWebLn();
     await sendPayment(pr);
     return { success: true, event: signedEvent } as any;
@@ -204,7 +220,7 @@ export const zapStream = async (
 };
 
 // Restored and completed helper functions
-export const getZapEndpoint = async (user: PrimalUser): Promise<string | null>  => {
+export const getZapEndpoint = async (user: PrimalUser): Promise<string | null> => {
   try {
     let lnurl: string = '';
     let callback: string | null = null;
@@ -223,13 +239,11 @@ export const getZapEndpoint = async (user: PrimalUser): Promise<string | null>  
     }
 
     const res = await fetch(lnurl);
-
     if (!res.ok) {
       return null;
     }
 
     const body = await res.json();
-
     if (body.allowsNostr && body.nostrPubkey) {
       callback = body.callback;
     }
@@ -261,3 +275,7 @@ export const convertToZap = (zap: PrimalZap): NostrUserZaps => {
     created_at,
   };
 };
+
+export const zapArticle = zapNote;
+export const zapProfile = zapNote;
+export const zapDVM = zapNote;
