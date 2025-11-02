@@ -40,247 +40,191 @@ const WalletSetup: Component = () => {
     );
   };
   
-  // Select random words for verification
-  const selectVerificationWords = (words: string[]): VerificationWord[] => {
+  // Get random words for verification
+  const getVerificationWords = (): VerificationWord[] => {
     const indices = new Set<number>();
     while (indices.size < 3) {
-      indices.add(Math.floor(Math.random() * words.length));
+      indices.add(Math.floor(Math.random() * 12));
     }
     return Array.from(indices)
       .sort((a, b) => a - b)
-      .map(index => ({ index, word: '' }));
+      .map(index => ({ index, word: mnemonic()[index] }));
   };
   
+  // Handle mode selection
   const handleModeSelect = (selectedMode: WalletMode) => {
     setMode(selectedMode);
     if (selectedMode === 'create') {
-      const newMnemonic = generateMnemonic();
-      setMnemonic(newMnemonic);
-      setVerificationWords(selectVerificationWords(newMnemonic));
+      setMnemonic(generateMnemonic());
+      setCurrentStep('mnemonic');
+    } else if (selectedMode === 'restore') {
+      // For restore, go directly to verification
+      setCurrentStep('verify');
     }
-    setCurrentStep('mnemonic');
   };
   
-  const handleCopyWord = (index: number) => {
-    const word = mnemonic()[index];
+  // Handle mnemonic confirmation
+  const handleMnemonicConfirmed = () => {
+    setVerificationWords(getVerificationWords());
+    setCurrentStep('verify');
+  };
+  
+  // Copy mnemonic word
+  const copyWord = (word: string, index: number) => {
     navigator.clipboard.writeText(word);
     setCopiedIndex(index);
     setTimeout(() => setCopiedIndex(null), 2000);
   };
   
-  const handleCopyAll = () => {
-    navigator.clipboard.writeText(mnemonic().join(' '));
-    setCopiedIndex(-1);
-    setTimeout(() => setCopiedIndex(null), 2000);
-  };
-  
-  const handleMnemonicConfirm = () => {
-    setCurrentStep('verify');
-  };
-  
-  const handleVerificationInput = (index: number, value: string) => {
-    setUserInputs(prev => ({ ...prev, [index]: value }));
-  };
-  
-  const handleVerificationSubmit = () => {
-    const verification = verificationWords();
-    const inputs = userInputs();
-    const mnemonicArray = mnemonic();
-    
-    const isValid = verification.every(
-      word => inputs[word.index]?.toLowerCase().trim() === mnemonicArray[word.index].toLowerCase()
+  // Handle verification
+  const handleVerification = () => {
+    setError('');
+    const allCorrect = verificationWords().every(
+      ({ index, word }) => userInputs()[index.toString()] === word
     );
     
-    if (isValid) {
-      setError('');
+    if (allCorrect) {
       setCurrentStep('success');
+      // Initialize wallet balance (mock)
+      setBalance(0);
     } else {
-      setError('Incorrect words. Please try again.');
+      setError('The words you entered do not match. Please try again.');
     }
   };
   
-  const handleFinish = () => {
-    // In a real implementation, save the wallet and navigate
-    console.log('Wallet setup complete');
+  // Handle input change
+  const handleInputChange = (index: number, value: string) => {
+    setUserInputs({ ...userInputs(), [index.toString()]: value });
   };
   
   return (
-    <div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-      <div class="max-w-2xl mx-auto">
-        {/* Progress Bar */}
-        <div class="mb-8">
-          <div class="h-2 bg-white/20 rounded-full overflow-hidden">
-            <div 
-              class="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
-              style={{ width: `${progress()}%` }}
-            />
-          </div>
-          <p class="text-white/60 text-sm mt-2 text-center">
-            Step {currentStepIndex() + 1} of {steps.length}
-          </p>
-        </div>
-        
-        {/* Mode Selection */}
-        <Show when={currentStep() === 'mode'}>
-          <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-xl">
-            <h2 class="text-3xl font-bold text-white mb-6 text-center">
-              Wallet Setup
-            </h2>
-            <p class="text-white/80 mb-8 text-center">
-              Choose how you'd like to set up your Lightning wallet
-            </p>
-            
-            <div class="space-y-4">
-              <button
-                onClick={() => handleModeSelect('create')}
-                class="w-full p-6 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 rounded-xl text-white font-semibold text-lg transition-all duration-200 transform hover:scale-105"
-              >
-                <div class="flex items-center justify-center gap-3">
-                  <span>🌟</span>
-                  <span>Create New Wallet</span>
-                </div>
-                <p class="text-sm text-white/80 mt-2">
-                  Generate a new wallet with a recovery phrase
-                </p>
-              </button>
-              
-              <button
-                onClick={() => handleModeSelect('restore')}
-                class="w-full p-6 bg-white/10 hover:bg-white/20 rounded-xl text-white font-semibold text-lg transition-all duration-200 transform hover:scale-105"
-              >
-                <div class="flex items-center justify-center gap-3">
-                  <span>🔄</span>
-                  <span>Restore Existing Wallet</span>
-                </div>
-                <p class="text-sm text-white/80 mt-2">
-                  Import your wallet using a recovery phrase
-                </p>
-              </button>
-            </div>
-          </div>
-        </Show>
-        
-        {/* Mnemonic Display */}
-        <Show when={currentStep() === 'mnemonic' && mode() === 'create'}>
-          <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-xl">
-            <h2 class="text-3xl font-bold text-white mb-6 text-center">
-              Your Recovery Phrase
-            </h2>
-            <p class="text-white/80 mb-6 text-center">
-              Write down these 12 words in order. You'll need them to recover your wallet.
-            </p>
-            
-            <div class="bg-red-500/20 border border-red-500/50 rounded-lg p-4 mb-6">
-              <p class="text-red-200 text-sm">
-                ⚠️ <strong>Important:</strong> Never share your recovery phrase with anyone. Store it securely offline.
-              </p>
-            </div>
-            
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-              <For each={mnemonic()}>
-                {(word, index) => (
-                  <div class="bg-white/5 rounded-lg p-3 flex items-center justify-between group">
-                    <span class="text-white/60 text-sm mr-2">{index() + 1}.</span>
-                    <span class="text-white font-mono flex-1">{word}</span>
-                    <button
-                      onClick={() => handleCopyWord(index())}
-                      class="opacity-0 group-hover:opacity-100 transition-opacity text-white/60 hover:text-white"
-                    >
-                      {copiedIndex() === index() ? '✓' : '📋'}
-                    </button>
-                  </div>
-                )}
-              </For>
-            </div>
-            
-            <div class="flex gap-4">
-              <button
-                onClick={handleCopyAll}
-                class="flex-1 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg text-white font-semibold transition-colors"
-              >
-                {copiedIndex() === -1 ? '✓ Copied' : '📋 Copy All'}
-              </button>
-              <button
-                onClick={handleMnemonicConfirm}
-                class="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 rounded-lg text-white font-semibold transition-colors"
-              >
-                I've Written It Down
-              </button>
-            </div>
-          </div>
-        </Show>
-        
-        {/* Verification */}
-        <Show when={currentStep() === 'verify'}>
-          <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-xl">
-            <h2 class="text-3xl font-bold text-white mb-6 text-center">
-              Verify Your Phrase
-            </h2>
-            <p class="text-white/80 mb-6 text-center">
-              Enter the following words from your recovery phrase to confirm you've saved it correctly.
-            </p>
-            
-            <Show when={error()}>
-              <div class="bg-red-500/20 border border-red-500/50 rounded-lg p-4 mb-6">
-                <p class="text-red-200">{error()}</p>
-              </div>
-            </Show>
-            
-            <div class="space-y-4 mb-6">
-              <For each={verificationWords()}>
-                {(word) => (
-                  <div>
-                    <label class="text-white/80 mb-2 block">
-                      Word #{word.index + 1}
-                    </label>
-                    <input
-                      type="text"
-                      value={userInputs()[word.index] || ''}
-                      onInput={(e) => handleVerificationInput(word.index, e.currentTarget.value)}
-                      class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-blue-500 transition-colors"
-                      placeholder="Enter word"
-                    />
-                  </div>
-                )}
-              </For>
-            </div>
-            
-            <button
-              onClick={handleVerificationSubmit}
-              class="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 rounded-lg text-white font-semibold transition-colors"
-            >
-              Verify
-            </button>
-          </div>
-        </Show>
-        
-        {/* Success */}
-        <Show when={currentStep() === 'success'}>
-          <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-xl text-center">
-            <div class="text-6xl mb-6">🎉</div>
-            <h2 class="text-3xl font-bold text-white mb-4">
-              Wallet Created Successfully!
-            </h2>
-            <p class="text-white/80 mb-8">
-              Your Lightning wallet is ready to use. You can now send and receive Bitcoin payments.
-            </p>
-            
-            <div class="bg-white/5 rounded-lg p-6 mb-8">
-              <p class="text-white/60 text-sm mb-2">Current Balance</p>
-              <p class="text-4xl font-bold text-white">
-                {balance().toLocaleString()} sats
-              </p>
-            </div>
-            
-            <button
-              onClick={handleFinish}
-              class="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 rounded-lg text-white font-semibold transition-colors"
-            >
-              Get Started
-            </button>
-          </div>
-        </Show>
+    <div class="wallet-setup">
+      {/* Progress bar */}
+      <div class="progress-container">
+        <div 
+          class="progress-bar"
+          style={`width: ${progress()}%`}
+        />
       </div>
+      
+      {/* Mode Selection */}
+      <Show when={currentStep() === 'mode'}>
+        <div class="step-container mode-selection">
+          <h2>Set Up Your Lightning Wallet</h2>
+          <p>Choose how you'd like to set up your wallet</p>
+          
+          <div class="mode-cards">
+            <button 
+              class="mode-card"
+              onClick={() => handleModeSelect('create')}
+            >
+              <div class="icon">🔐</div>
+              <h3>Create New Wallet</h3>
+              <p>Generate a new wallet with a secure recovery phrase</p>
+            </button>
+            
+            <button 
+              class="mode-card"
+              onClick={() => handleModeSelect('restore')}
+            >
+              <div class="icon">🔄</div>
+              <h3>Restore Wallet</h3>
+              <p>Restore your wallet using your recovery phrase</p>
+            </button>
+          </div>
+        </div>
+      </Show>
+      
+      {/* Mnemonic Display */}
+      <Show when={currentStep() === 'mnemonic'}>
+        <div class="step-container mnemonic-display">
+          <h2>Your Recovery Phrase</h2>
+          <p class="warning">
+            ⚠️ Write down these words in order. You'll need them to recover your wallet.
+          </p>
+          
+          <div class="mnemonic-grid">
+            <For each={mnemonic()}>
+              {(word, index) => (
+                <div class="mnemonic-word">
+                  <span class="word-number">{index() + 1}</span>
+                  <span class="word-text">{word}</span>
+                  <button 
+                    class="copy-btn"
+                    onClick={() => copyWord(word, index())}
+                    title="Copy word"
+                  >
+                    {copiedIndex() === index() ? '✓' : '📋'}
+                  </button>
+                </div>
+              )}
+            </For>
+          </div>
+          
+          <button 
+            class="primary-btn"
+            onClick={handleMnemonicConfirmed}
+          >
+            I've Written It Down
+          </button>
+        </div>
+      </Show>
+      
+      {/* Verification */}
+      <Show when={currentStep() === 'verify'}>
+        <div class="step-container verification">
+          <h2>Verify Your Recovery Phrase</h2>
+          <p>Enter the following words from your recovery phrase:</p>
+          
+          <div class="verification-inputs">
+            <For each={verificationWords()}>
+              {({ index, word }) => (
+                <div class="verification-field">
+                  <label>Word #{index + 1}</label>
+                  <input 
+                    type="text"
+                    value={userInputs()[index.toString()] || ''}
+                    onInput={(e) => handleInputChange(index, e.currentTarget.value)}
+                    placeholder="Enter word"
+                  />
+                </div>
+              )}
+            </For>
+          </div>
+          
+          <Show when={error()}>
+            <div class="error-message">{error()}</div>
+          </Show>
+          
+          <button 
+            class="primary-btn"
+            onClick={handleVerification}
+          >
+            Verify & Continue
+          </button>
+        </div>
+      </Show>
+      
+      {/* Success */}
+      <Show when={currentStep() === 'success'}>
+        <div class="step-container success">
+          <div class="success-icon">✅</div>
+          <h2>Wallet Created Successfully!</h2>
+          <p>Your Lightning wallet is ready to use</p>
+          
+          <div class="balance-display">
+            <span class="balance-label">Current Balance</span>
+            <span class="balance-amount">{balance()} sats</span>
+          </div>
+          
+          <button 
+            class="primary-btn"
+            onClick={() => {/* Navigate to wallet */}}
+          >
+            Go to Wallet
+          </button>
+        </div>
+      </Show>
     </div>
   );
 };
