@@ -1,5 +1,4 @@
 import { Component, createSignal, createMemo, For, Show } from 'solid-js';
-import { useBreezWallet } from '../../contexts/BreezWalletContext';
 
 type WalletMode = 'select' | 'create' | 'restore';
 type Step = 'mode' | 'mnemonic' | 'verify' | 'success';
@@ -10,7 +9,6 @@ interface VerificationWord {
 }
 
 const WalletSetup: Component = () => {
-  const wallet = useBreezWallet();
   
   // State management
   const [mode, setMode] = createSignal<WalletMode>('select');
