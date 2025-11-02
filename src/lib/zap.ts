@@ -34,199 +34,187 @@ export const zapOverNWC = async (pubkey: string, nwcEnc: string, invoice: string
   try {
     const nwc = await decrypt(pubkey, nwcEnc);
     const nwcConfig = decodeNWCUri(nwc);
-    const request = await nip47.makeNwcRequestEvent(nwcConfig.pubkey, hexToBytes(nwcConfig.secret), invoice);
-    const signed = await signEvent(request);
 
-    for (const url of nwcConfig.relays) {
-      const relay = relayInit(url);
-      await relay.connect();
-      relays.push(relay);
-
-      promises.push(
-        new Promise<boolean>((resolve) => {
-          let resolved = false;
-          const sub = relay.sub([{ kinds: [23195], authors: [nwcConfig.pubkey] }]);
-
-          sub.on('event', async (event: NostrRelaySignedEvent) => {
-            try {
-              const response = await nip04.decrypt(nwcConfig.secret, nwcConfig.pubkey, event.content);
-              const resp = JSON.parse(response);
-
-              if (resp.result_type === 'pay_invoice' && resp.result && !resolved) {
-                resolved = true;
-                result = true;
-                resolve(true);
-              } else if (resp.error && !resolved) {
-                resolved = true;
-                lastZapError = resp.error.message || 'NWC error';
-                resolve(false);
-              }
-            } catch (e) {
-              if (!resolved) {
-                resolved = true;
-                lastZapError = String(e);
-                resolve(false);
-              }
-            }
-          });
-
-          setTimeout(() => {
-            if (!resolved) {
-              resolved = true;
-              resolve(false);
-            }
-          }, 30000);
-        })
-      );
-
-      await relay.publish(signed);
+    if (!nwcConfig) {
+      lastZapError = "Failed to decode NWC URI";
+      return false;
     }
 
-    await Promise.race(promises);
+    const { secret, walletPubkey, relayUrl } = nwcConfig;
+
+    const relay = relayInit(relayUrl);
+    await relay.connect();
+    relays.push(relay);
+
+    const reqId = utils.generateId();
+
+    promises.push(
+      new Promise<boolean>(async (res, rej) => {
+        const timeout = setTimeout(() => {
+          rej(new Error("NWC payment timeout"));
+        }, 30000);
+
+        const sub = relay.sub([
+          {
+            kinds: [23195],
+            authors: [walletPubkey],
+            "#e": [reqId],
+          },
+        ]);
+
+        sub.on("event", async (event) => {
+          clearTimeout(timeout);
+          try {
+            const decryptedContent = await nip04.decrypt(secret, walletPubkey, event.content);
+            const response = JSON.parse(decryptedContent);
+            if (response.result_type === "pay_invoice") {
+              res(true);
+            } else if (response.error) {
+              lastZapError = response.error.message || "NWC payment failed";
+              rej(new Error(lastZapError));
+            } else {
+              rej(new Error("Unknown NWC response"));
+            }
+          } catch (e) {
+            lastZapError = String(e);
+            rej(e);
+          }
+        });
+
+        const content = JSON.stringify({
+          method: "pay_invoice",
+          params: {
+            invoice,
+          },
+        });
+
+        const encryptedContent = await nip04.encrypt(secret, walletPubkey, content);
+
+        const payEvent = {
+          kind: 23194,
+          pubkey: hexToBytes(utils.getPublicKey(secret)),
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [["p", walletPubkey]],
+          content: encryptedContent,
+          id: reqId,
+        };
+
+        const signedEvent = await signEvent(payEvent, secret);
+        await relay.publish(signedEvent);
+      })
+    );
+
+    result = await Promise.race(promises);
     return result;
   } catch (e) {
-    logError('zapOverNWC', e);
     lastZapError = String(e);
+    logError("zapOverNWC", e);
     return false;
   } finally {
-    relays.forEach((r) => r.close());
+    relays.forEach((relay) => relay.close());
   }
 };
 
 export const zapNote = async (
-  note: PrimalNote | PrimalArticle | PrimalDVM,
-  sender: string | undefined,
+  item: PrimalNote | PrimalArticle | PrimalUser | PrimalDVM,
+  sender: string,
   amount: number,
-  comment: string,
-  relays: Relay[],
-  nwc?: [string, string],
-  useBreez = false
-) => {
-  if (!sender || !note.user) {
-    return { success: false } as any;
+  comment: string = "",
+  nwcEnc?: string
+): Promise<boolean> => {
+  let user: PrimalUser | undefined;
+  let eventId: string | undefined;
+
+  if ('noteId' in item) {
+    user = item.user;
+    eventId = item.noteId;
+  } else if ('naddr' in item) {
+    user = item.user;
+    eventId = item.noteId;
+  } else if ('pubkey' in item) {
+    user = item;
+    eventId = undefined;
+  } else if ('dvmPubkey' in item) {
+    user = {
+      pubkey: item.dvmPubkey,
+      lud16: item.lud16,
+      lud06: item.lud06,
+    } as PrimalUser;
+    eventId = undefined;
   }
 
-  const callback = await getZapEndpoint(note.user);
-
-  if (!callback) {
-    return { success: false } as any;
-  }
-
-  const sats = Math.round(amount * 1000);
-
-  let payload: any = {
-    profile: note.user.pubkey,
-    event: note.post.id,
-    amount: sats,
-    relays: relays.map(r => r.url),
-  };
-
-  if (comment.length > 0) {
-    // @ts-ignore
-    payload.comment = comment;
-  }
-
-  const zapReq = nip57.makeZapRequest(payload);
-
-  try {
-    const signedEvent = await signEvent(zapReq);
-    const event = encodeURIComponent(JSON.stringify(signedEvent));
-    const r2 = await (await fetch(`${callback}?amount=${sats}&nostr=${event}`)).json();
-    const pr = r2.pr;
-
-    if (useBreez) {
-      const breezPaid = await payWithBreez(pr);
-      if (breezPaid) return { success: true, event: signedEvent } as any;
-    }
-
-    if (nwc && nwc[1] && nwc[1].length > 0) {
-      const success = await zapOverNWC(sender, nwc[1], pr);
-      return { success, event: signedEvent } as any;
-    }
-
-    await enableWebLn();
-    await sendPayment(pr);
-    return { success: true, event: signedEvent } as any;
-  } catch (reason) {
-    console.error('Failed to zap: ', reason);
-    return { success: false } as any;
-  }
-};
-
-export const zapStream = async (
-  stream: StreamingData,
-  sender: string | undefined,
-  host: PrimalUser | undefined,
-  amount: number,
-  comment: string,
-  relays: Relay[],
-  nwc?: [string, string],
-  useBreez = false
-) => {
-  if (!sender || !host) {
-    return { success: false } as any;
-  }
-
-  const callback = await getZapEndpoint(host);
-
-  if (!callback) {
-    return { success: false } as any;
-  }
-
-  const a = `${Kind.LiveEvent}:${stream.pubkey}:${stream.id}`;
-  const sats = Math.round(amount * 1000);
-
-  let payload: any = {
-    profile: host.pubkey,
-    event: stream.event?.id || null,
-    amount: sats,
-    relays: relays.map(r => r.url),
-  };
-
-  if (comment.length > 0) {
-    // @ts-ignore
-    payload.comment = comment;
-  }
-
-  const zapReq = nip57.makeZapRequest(payload);
-
-  if (!zapReq.tags.find((t: string[]) => t[0] === 'a' && t[1] === a)) {
-    zapReq.tags.push(['a', a]);
+  if (!user) {
+    lastZapError = "No user info available";
+    return false;
   }
 
   try {
-    const signedEvent = await signEvent(zapReq);
-    const event = encodeURIComponent(JSON.stringify(signedEvent));
-    const r2 = await (await fetch(`${callback}?amount=${sats}&nostr=${event}`)).json();
-    const pr = r2.pr;
-
-    if (useBreez) {
-      const breezPaid = await payWithBreez(pr);
-      if (breezPaid) return { success: true, event: signedEvent } as any;
+    const callback = await getZapEndpoint(user);
+    if (!callback) {
+      lastZapError = "No zap endpoint found";
+      return false;
     }
 
-    if (nwc && nwc[1] && nwc[1].length > 0) {
-      const success = await zapOverNWC(sender, nwc[1], pr);
-      return { success, event: signedEvent } as any;
+    const zapReq = nip57.makeZapRequest({
+      profile: user.pubkey,
+      event: eventId,
+      amount: amount * 1000,
+      comment,
+      relays: ["wss://relay.primal.net"],
+    });
+
+    const signedZapReq = (await signEvent(zapReq)) as NostrRelaySignedEvent;
+    const encodedZapReq = encodeURI(JSON.stringify(signedZapReq));
+
+    const url = `${callback}?amount=${amount * 1000}&nostr=${encodedZapReq}`;
+    const res = await fetch(url);
+
+    if (!res.ok) {
+      lastZapError = `Fetch failed: ${res.status} ${res.statusText}`;
+      return false;
     }
 
-    await enableWebLn();
-    await sendPayment(pr);
-    return { success: true, event: signedEvent } as any;
-  } catch (reason) {
-    console.error('Failed to zap: ', reason);
-    return { success: false } as any;
+    const body = await res.json();
+    const invoice = body.pr;
+
+    if (!invoice) {
+      lastZapError = "No invoice returned";
+      return false;
+    }
+
+    // Try Breez first
+    const breezPaid = await payWithBreez(invoice);
+    if (breezPaid) return true;
+
+    // Then try NWC if available
+    if (nwcEnc) {
+      const nwcPaid = await zapOverNWC(sender, nwcEnc, invoice);
+      if (nwcPaid) return true;
+    }
+
+    // Finally try WebLN
+    const enabled = await enableWebLn();
+    if (!enabled) {
+      lastZapError = "No payment method available";
+      return false;
+    }
+
+    const payment = await sendPayment(invoice);
+    return !!payment?.preimage;
+  } catch (e) {
+    lastZapError = String(e);
+    logError("zapNote", e);
+    return false;
   }
 };
 
-// Restored and completed helper functions
 export const getZapEndpoint = async (user: PrimalUser): Promise<string | null> => {
   try {
-    let lnurl: string = '';
-    let callback: string | null = null;
+    let lnurl = "";
+    let callback = "";
 
     if (user.lud16) {
-      const [name, domain] = user.lud16.split('@');
+      const [name, domain] = user.lud16.split("@");
       lnurl = `https://${domain}/.well-known/lnurlp/${name}`;
     } else if (user.lud06) {
       const { words } = bech32.decode(user.lud06, 1023);
@@ -262,6 +250,7 @@ export const canUserReceiveZaps = (user?: PrimalUser) => {
 export const convertToZap = (zap: PrimalZap): NostrUserZaps => {
   const zapRequest = JSON.parse(zap.zapRequest || '{}');
   const zapRecepient = zap.recepient;
+
   const { amount, description, id, created_at, sig, pubkey } = zap;
 
   return {
@@ -279,3 +268,4 @@ export const convertToZap = (zap: PrimalZap): NostrUserZaps => {
 export const zapArticle = zapNote;
 export const zapProfile = zapNote;
 export const zapDVM = zapNote;
+export const zapSubscription = zapNote;
