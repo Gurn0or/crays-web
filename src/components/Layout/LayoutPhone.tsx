@@ -45,6 +45,7 @@ const LayoutPhone: Component<{
   };
 
   onMount(() => {
+    onResize();
     window.addEventListener('resize', onResize);
   });
 

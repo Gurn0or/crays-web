@@ -31,6 +31,7 @@ const LayoutDesktop: Component<{
   };
 
   onMount(() => {
+    onResize();
     window.addEventListener('resize', onResize);
   });
 
