@@ -1,5 +1,5 @@
 import { Component, Show, createSignal } from 'solid-js';
-import { useBreezWallet } from './hooks/useBreezWallet';
+import { useBreezWallet } from '../../contexts/BreezWalletContext';
 import WalletSetup from './WalletSetup';
 import WalletDashboard from './WalletDashboard';
 import SendModal from './SendModal';
@@ -22,7 +22,6 @@ const Wallet: Component = () => {
           <p>Error initializing wallet: {wallet.error}</p>
         </div>
       </Show>
-
       <Show when={!wallet.hasWallet()} fallback={
         <Show when={wallet.connected()}>
           <WalletDashboard
@@ -35,7 +34,6 @@ const Wallet: Component = () => {
       }>
         <WalletSetup />
       </Show>
-
       <Show when={sendOpen()}>
         <SendModal
           isOpen={sendOpen()}
@@ -44,7 +42,6 @@ const Wallet: Component = () => {
           onSend={wallet.sendPayment}
         />
       </Show>
-
       <Show when={receiveOpen()}>
         <ReceiveModal
           isOpen={receiveOpen()}
