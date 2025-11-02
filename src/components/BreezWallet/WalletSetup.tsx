@@ -1,4 +1,5 @@
 import { Component, createSignal, createMemo, For, Show } from 'solid-js';
+import styles from './BreezWallet.module.scss';
 
 type WalletMode = 'select' | 'create' | 'restore';
 type Step = 'mode' | 'mnemonic' | 'verify' | 'success';
@@ -96,36 +97,36 @@ const WalletSetup: Component = () => {
   };
   
   return (
-    <div class="wallet-setup">
+    <div class={styles.walletSetup}>
       {/* Progress bar */}
-      <div class="progress-container">
-        <div 
-          class="progress-bar"
+      <div class={styles.progressContainer}>
+        <div
+          class={styles.progressBar}
           style={`width: ${progress()}%`}
         />
       </div>
-      
+
       {/* Mode Selection */}
       <Show when={currentStep() === 'mode'}>
-        <div class="step-container mode-selection">
+        <div class={styles.stepContainer}>
           <h2>Set Up Your Lightning Wallet</h2>
           <p>Choose how you'd like to set up your wallet</p>
-          
-          <div class="mode-cards">
-            <button 
-              class="mode-card"
+
+          <div class={styles.modeCards}>
+            <button
+              class={styles.modeCard}
               onClick={() => handleModeSelect('create')}
             >
-              <div class="icon">🔐</div>
+              <div class={styles.modeIcon}>🔐</div>
               <h3>Create New Wallet</h3>
               <p>Generate a new wallet with a secure recovery phrase</p>
             </button>
-            
-            <button 
-              class="mode-card"
+
+            <button
+              class={styles.modeCard}
               onClick={() => handleModeSelect('restore')}
             >
-              <div class="icon">🔄</div>
+              <div class={styles.modeIcon}>🔄</div>
               <h3>Restore Wallet</h3>
               <p>Restore your wallet using your recovery phrase</p>
             </button>
@@ -135,20 +136,20 @@ const WalletSetup: Component = () => {
       
       {/* Mnemonic Display */}
       <Show when={currentStep() === 'mnemonic'}>
-        <div class="step-container mnemonic-display">
+        <div class={styles.stepContainer}>
           <h2>Your Recovery Phrase</h2>
-          <p class="warning">
+          <p class={styles.warning}>
             ⚠️ Write down these words in order. You'll need them to recover your wallet.
           </p>
-          
-          <div class="mnemonic-grid">
+
+          <div class={styles.mnemonicGrid}>
             <For each={mnemonic()}>
               {(word, index) => (
-                <div class="mnemonic-word">
-                  <span class="word-number">{index() + 1}</span>
-                  <span class="word-text">{word}</span>
-                  <button 
-                    class="copy-btn"
+                <div class={styles.mnemonicWord}>
+                  <span class={styles.wordNumber}>{index() + 1}</span>
+                  <span class={styles.wordText}>{word}</span>
+                  <button
+                    class={styles.copyBtn}
                     onClick={() => copyWord(word, index())}
                     title="Copy word"
                   >
@@ -158,28 +159,28 @@ const WalletSetup: Component = () => {
               )}
             </For>
           </div>
-          
-          <button 
-            class="primary-btn"
+
+          <button
+            class={styles.primaryBtn}
             onClick={handleMnemonicConfirmed}
           >
             I've Written It Down
           </button>
         </div>
       </Show>
-      
+
       {/* Verification */}
       <Show when={currentStep() === 'verify'}>
-        <div class="step-container verification">
+        <div class={styles.stepContainer}>
           <h2>Verify Your Recovery Phrase</h2>
           <p>Enter the following words from your recovery phrase:</p>
-          
-          <div class="verification-inputs">
+
+          <div class={styles.verificationInputs}>
             <For each={verificationWords()}>
               {({ index, word }) => (
-                <div class="verification-field">
+                <div class={styles.verificationField}>
                   <label>Word #{index + 1}</label>
-                  <input 
+                  <input
                     type="text"
                     value={userInputs()[index.toString()] || ''}
                     onInput={(e) => handleInputChange(index, e.currentTarget.value)}
@@ -189,34 +190,34 @@ const WalletSetup: Component = () => {
               )}
             </For>
           </div>
-          
+
           <Show when={error()}>
-            <div class="error-message">{error()}</div>
+            <div class={styles.errorMessage}>{error()}</div>
           </Show>
-          
-          <button 
-            class="primary-btn"
+
+          <button
+            class={styles.primaryBtn}
             onClick={handleVerification}
           >
             Verify & Continue
           </button>
         </div>
       </Show>
-      
+
       {/* Success */}
       <Show when={currentStep() === 'success'}>
-        <div class="step-container success">
-          <div class="success-icon">✅</div>
+        <div class={styles.stepContainer}>
+          <div class={styles.successIcon}>✅</div>
           <h2>Wallet Created Successfully!</h2>
           <p>Your Lightning wallet is ready to use</p>
-          
-          <div class="balance-display">
-            <span class="balance-label">Current Balance</span>
-            <span class="balance-amount">{balance()} sats</span>
+
+          <div class={styles.balanceDisplay}>
+            <span class={styles.balanceLabel}>Current Balance</span>
+            <span class={styles.balanceAmount}>{balance()} sats</span>
           </div>
-          
-          <button 
-            class="primary-btn"
+
+          <button
+            class={styles.primaryBtn}
             onClick={() => {/* Navigate to wallet */}}
           >
             Go to Wallet

@@ -4,6 +4,7 @@ import WalletSetup from './WalletSetup';
 import WalletDashboard from './WalletDashboard';
 import SendModal from './SendModal';
 import ReceiveModal from './ReceiveModal';
+import styles from './BreezWallet.module.scss';
 
 const Wallet: Component = () => {
   const [walletState, walletActions] = useBreezWallet();
@@ -20,10 +21,10 @@ const Wallet: Component = () => {
   const handleReceiveClose = () => setReceiveOpen(false);
 
   return (
-    <div class="wallet-container">
+    <div class={styles.walletRoot}>
       <Show when={walletState.error}>
-        <div class="wallet-error" role="alert">
-          <p>Error initializing wallet: {walletState.error}</p>
+        <div class={styles.walletError} role="alert">
+          <p class={styles.errorText}>Error initializing wallet: {walletState.error}</p>
         </div>
       </Show>
 

@@ -66,6 +66,8 @@ const LayoutPhone: Component<{
     }
   });
 
+  const isWalletRoute = () => location.pathname.startsWith('/wallet');
+
   const containerClass = () => {
     let k = styles.containerPhone;
 
@@ -75,6 +77,8 @@ const LayoutPhone: Component<{
 
     return k;
   }
+
+  const canRenderContent = () => account?.isKeyLookupDone || isWalletRoute();
 
   return (
     <Show
@@ -86,17 +90,21 @@ const LayoutPhone: Component<{
     >
       <>
         <div id="container" ref={container} class={containerClass()}>
-          <Show when={account?.isKeyLookupDone}>
+          <Show when={canRenderContent()}>
             <div class={styles.phoneContent}>
-              <div id="new_note_input" class={styles.headerFloater}>
-                <NewNote onSuccess={props.onNewNotePosted}/>
-              </div>
+              <Show when={account?.isKeyLookupDone}>
+                <div id="new_note_input" class={styles.headerFloater}>
+                  <NewNote onSuccess={props.onNewNotePosted}/>
+                </div>
+              </Show>
               {props.children}
             </div>
 
-            <div class={styles.phoneFooter}>
-              <NavPhone />
-            </div>
+            <Show when={account?.isKeyLookupDone}>
+              <div class={styles.phoneFooter}>
+                <NavPhone />
+              </div>
+            </Show>
           </Show>
         </div>
       </>

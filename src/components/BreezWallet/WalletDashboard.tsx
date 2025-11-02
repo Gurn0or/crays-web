@@ -1,4 +1,5 @@
 import { Component, For, Show, createEffect, createMemo, createSignal } from 'solid-js';
+import styles from './BreezWallet.module.scss';
 
 interface Transaction {
   id: string;
@@ -70,154 +71,197 @@ const WalletDashboard: Component<WalletDashboardProps> = (props) => {
     }
   };
 
-  return (
-    <div class="wallet-dashboard">
-      <div class="dashboard-header">
-        <h1>Breez Wallet</h1>
-        <div class="connection-status">
-          <span class={`status-indicator ${connectionStatus()}`}></span>
-          <span class="status-text">{connectionStatus()}</span>
-        </div>
-      </div>
+  const cn = (...classes: Array<string | false | null | undefined>) =>
+    classes.filter(Boolean).join(' ');
 
-      <div class="balance-card">
-        <div class="balance-header">
-          <h2>Balance</h2>
-          <div class="balance-actions">
-            <button
-              class="toggle-unit-btn"
-              onClick={() => setShowSats(!showSats())}
-            >
-              {showSats() ? 'Show BTC' : 'Show Sats'}
-            </button>
-            <Show when={props.onRefresh}>
+  const statusBadgeClass = createMemo(() =>
+    cn(
+      styles.badge,
+      connectionStatus() === 'connected' && styles.success,
+      connectionStatus() === 'connecting' && styles.pending,
+      connectionStatus() === 'disconnected' && styles.failed,
+    )
+  );
+
+  return (
+    <div class={styles.dashboard}>
+      <div class={styles.gridRow}>
+        <section class={cn(styles.card, styles.gridCol12)}>
+          <div class={styles.dashboardHeader}>
+            <div>
+              <h1>Breez Wallet</h1>
+              <p class={styles.helperText}>
+                Manage your Breez Lightning wallet balance and activity.
+              </p>
+            </div>
+            <div class={styles.statusGroup}>
+              <span class={statusBadgeClass()}>{connectionStatus()}</span>
+            </div>
+          </div>
+        </section>
+
+        <section class={cn(styles.card, styles.balanceCard)}>
+          <header class={styles.balanceHeader}>
+            <h2>Balance</h2>
+            <div class={styles.balanceActions}>
               <button
-                class="refresh-btn"
-                classList={{ loading: isRefreshing() }}
-                onClick={handleRefresh}
-                disabled={isRefreshing()}
+                class={cn(styles.btn, styles.btnSecondary)}
+                onClick={() => setShowSats(!showSats())}
+                type="button"
               >
-                {isRefreshing() ? 'Refreshing…' : 'Refresh'}
+                {showSats() ? 'Show BTC' : 'Show Sats'}
               </button>
+              <Show when={props.onRefresh}>
+                <button
+                  class={cn(styles.btn, styles.btnSecondary, isRefreshing() && styles.loading)}
+                  onClick={handleRefresh}
+                  disabled={isRefreshing()}
+                  type="button"
+                >
+                  {isRefreshing() ? 'Refreshing…' : 'Refresh'}
+                </button>
+              </Show>
+            </div>
+          </header>
+
+          <div class={styles.balanceDisplay}>
+            <Show
+              when={!isLoading()}
+              fallback={
+                <div class={styles.loading}>
+                  <span class={styles.spinner} />
+                  Loading balance…
+                </div>
+              }
+            >
+              <div class={styles.balance}>{formatBalance(props.balance)}</div>
+              <div class={styles.balanceFiat}>Lightning wallet balance</div>
             </Show>
           </div>
-        </div>
-        <div class="balance-amount">
-          <Show
-            when={!isLoading()}
-            fallback={<div class="loading-spinner">Loading...</div>}
-          >
-            {formatBalance(props.balance)}
-          </Show>
-        </div>
-      </div>
+        </section>
 
-      <div class="quick-actions">
-        <button
-          class="action-btn primary"
-          onClick={props.onReceive}
-          disabled={!props.isConnected}
-        >
-          <span class="icon">↓</span>
-          Receive
-        </button>
-        <button
-          class="action-btn primary"
-          onClick={props.onSend}
-          disabled={!props.isConnected || props.balance === 0}
-        >
-          <span class="icon">↑</span>
-          Send
-        </button>
-      </div>
+        <section class={cn(styles.card, styles.actionsCard)}>
+          <h2 class={styles.sectionTitle}>Quick actions</h2>
+          <div class={styles.quickActions}>
+            <button
+              class={cn(styles.btn, styles.btnPrimary, styles.btnIcon, styles.btnBlock)}
+              onClick={props.onReceive}
+              disabled={!props.isConnected}
+              type="button"
+            >
+              <span aria-hidden="true">↓</span>
+              Receive
+            </button>
+            <button
+              class={cn(styles.btn, styles.btnPrimary, styles.btnIcon, styles.btnBlock)}
+              onClick={props.onSend}
+              disabled={!props.isConnected || props.balance === 0}
+              type="button"
+            >
+              <span aria-hidden="true">↑</span>
+              Send
+            </button>
+          </div>
+        </section>
 
-      <div class="transactions-section">
-        <div class="section-header">
-          <h2>Recent Transactions</h2>
-          <button class="view-all-btn" disabled>
-            View All
-          </button>
-        </div>
+        <section class={cn(styles.card, styles.activityCard)}>
+          <div class={styles.transactionsHeader}>
+            <h2 class={styles.sectionTitle}>Recent transactions</h2>
+            <button class={cn(styles.btn, styles.btnSecondary)} disabled type="button">
+              View all
+            </button>
+          </div>
 
-        <div class="transactions-list">
           <Show
             when={!isLoading()}
             fallback={
-              <div class="loading-container">
-                <div class="loading-spinner">Loading transactions...</div>
+              <div class={styles.loadingContainer}>
+                <div class={styles.loading}>
+                  <span class={styles.spinner} />
+                  Loading transactions…
+                </div>
               </div>
             }
           >
             <Show
               when={transactions().length > 0}
               fallback={
-                <div class="empty-state">
+                <div class={styles.emptyState}>
                   <p>No transactions yet</p>
-                  <p class="empty-state-subtitle">Start by receiving some sats!</p>
+                  <p class={styles.emptyStateSubtitle}>Start by receiving some sats!</p>
                 </div>
               }
             >
-              <For each={transactions()}>
-                {(tx) => (
-                  <div class="transaction-item">
-                    <div class="transaction-icon">
-                      <span class={tx.type === 'incoming' ? 'icon-incoming' : 'icon-outgoing'}>
+              <div class={styles.txList}>
+                <For each={transactions()}>
+                  {(tx) => (
+                    <div
+                      class={cn(
+                        styles.txItem,
+                        tx.type === 'incoming' && styles.incoming,
+                        tx.type === 'outgoing' && styles.outgoing,
+                      )}
+                    >
+                      <div class={styles.txIcon} aria-hidden="true">
                         {tx.type === 'incoming' ? '↓' : '↑'}
-                      </span>
-                    </div>
-                    <div class="transaction-details">
-                      <div class="transaction-description">
-                        {tx.description || (tx.type === 'incoming' ? 'Received' : 'Sent')}
                       </div>
-                      <div class="transaction-date">
-                        {formatDate(tx.timestamp)}
+                      <div class={styles.txMeta}>
+                        <div class={styles.txTitle}>
+                          {tx.description || (tx.type === 'incoming' ? 'Received' : 'Sent')}
+                        </div>
+                        <div class={styles.txSub}>{formatDate(tx.timestamp)}</div>
                       </div>
-                    </div>
-                    <div class="transaction-amount">
-                      <div class={`amount ${tx.type}`}>
+                      <div class={styles.txAmt}>
                         {tx.type === 'incoming' ? '+' : '-'}{formatBalance(tx.amount)}
-                      </div>
-                      <div class={`transaction-status ${getStatusColor(tx.status)}`}>
-                        {tx.status}
+                        <span
+                          class={cn(
+                            styles.badge,
+                            tx.status === 'completed' && styles.success,
+                            tx.status === 'pending' && styles.pending,
+                            tx.status === 'failed' && styles.failed,
+                          )}
+                        >
+                          {tx.status}
+                        </span>
                       </div>
                     </div>
-                  </div>
-                )}
-              </For>
+                  )}
+                </For>
+              </div>
             </Show>
           </Show>
-        </div>
+        </section>
       </div>
 
-      <div class="node-info">
-        <h2>Node Status</h2>
-        <div class="status-cards">
-          <div class="status-card">
-            <span class="status-label">Connection</span>
-            <span class={`status-value ${connectionStatus()}`}>
+      <section class={cn(styles.card, styles.gridCol12)}>
+        <h2 class={styles.sectionTitle}>Node status</h2>
+        <div class={styles.nodeStatusGrid}>
+          <div class={styles.nodeStatusCard}>
+            <span class={styles.label}>Connection</span>
+            <span class={statusBadgeClass()}>
               {connectionStatus() === 'connected' ? 'Connected' : 'Disconnected'}
             </span>
           </div>
-          <div class="status-card">
-            <span class="status-label">Last Sync</span>
-            <span class="status-value">Just now</span>
+          <div class={styles.nodeStatusCard}>
+            <span class={styles.label}>Last sync</span>
+            <span>Just now</span>
           </div>
-          <div class="status-card">
-            <span class="status-label">Network</span>
-            <span class="status-value">Lightning</span>
+          <div class={styles.nodeStatusCard}>
+            <span class={styles.label}>Network</span>
+            <span>Lightning</span>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="help-section">
-        <h2>Need Help?</h2>
-        <ul>
-          <li>• Create a new wallet or restore an existing one using your mnemonic phrase.</li>
-          <li>• Receive funds by generating a Lightning invoice.</li>
-          <li>• Send payments instantly with Lightning invoices or LNURL.</li>
-          <li>• Keep your mnemonic phrase safe – it's the only way to recover your wallet.</li>
+      <section class={cn(styles.card, styles.gridCol12, styles.helpSection)}>
+        <h2 class={styles.sectionTitle}>Need help?</h2>
+        <ul class={styles.helpList}>
+          <li>Create or restore your wallet with your mnemonic phrase.</li>
+          <li>Receive funds by generating a Lightning invoice.</li>
+          <li>Send payments instantly with Lightning invoices or LNURL.</li>
+          <li>Keep your mnemonic phrase safe – it is required to recover your wallet.</li>
         </ul>
-      </div>
+      </section>
     </div>
   );
 };

@@ -38,6 +38,8 @@ const LayoutDesktop: Component<{
     window.removeEventListener('resize', onResize);
   });
 
+  const isWalletRoute = () => location.pathname.startsWith('/wallet');
+
   const containerClass = () => {
     if (location.pathname.startsWith('/e/naddr') || location.pathname.startsWith('/a/naddr')) return styles.containerLF;
     if (location.pathname.includes('/live')) return styles.liveContainer
@@ -45,6 +47,8 @@ const LayoutDesktop: Component<{
 
     return styles.container;
   }
+
+  const canRenderCenterColumn = () => (account?.isKeyLookupDone || isWalletRoute());
 
   return (
     <Show
@@ -106,7 +110,7 @@ const LayoutDesktop: Component<{
             </Match>
           </Switch>
 
-          <Show when={account?.isKeyLookupDone}>
+          <Show when={canRenderCenterColumn()}>
             <Switch>
               <Match when={location.pathname.includes('/citadel_stream')}>
                 <></>
@@ -114,9 +118,11 @@ const LayoutDesktop: Component<{
 
               <Match when={location.pathname.includes('/live')}>
                 <div class={styles.liveStreamCenter}>
-                  <div id="new_note_input" class={styles.headerFloater}>
-                    <NewNote onSuccess={props.onNewNotePosted}/>
-                  </div>
+                  <Show when={account?.isKeyLookupDone}>
+                    <div id="new_note_input" class={styles.headerFloater}>
+                      <NewNote onSuccess={props.onNewNotePosted}/>
+                    </div>
+                  </Show>
                   {props.children}
                 </div>
               </Match>
@@ -124,9 +130,11 @@ const LayoutDesktop: Component<{
               <Match when={true}>
                 <div class={styles.centerColumn}>
                   <div class={styles.centerContent}>
-                    <div id="new_note_input" class={styles.headerFloater}>
-                      <NewNote onSuccess={props.onNewNotePosted}/>
-                    </div>
+                    <Show when={account?.isKeyLookupDone}>
+                      <div id="new_note_input" class={styles.headerFloater}>
+                        <NewNote onSuccess={props.onNewNotePosted}/>
+                      </div>
+                    </Show>
 
                     <div>
                       {props.children}

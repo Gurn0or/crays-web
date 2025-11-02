@@ -3,6 +3,7 @@
 import type { EncryptedData } from './encryption';
 
 const ENCRYPTED_MNEMONIC_KEY = 'breez_wallet_encrypted';
+const PLAINTEXT_MNEMONIC_KEY = 'breez_wallet_mnemonic';
 const WALLET_STATE_KEY = 'breez_wallet_state';
 
 export interface WalletState {
@@ -37,6 +38,45 @@ export function loadEncryptedMnemonic(): EncryptedData | null {
   } catch (error) {
     console.error('Failed to load encrypted mnemonic:', error);
     return null;
+  }
+}
+
+/**
+ * Saves a plain text mnemonic in localStorage.
+ * This is a temporary helper until full encryption support is wired up.
+ */
+export function savePlaintextMnemonic(mnemonic: string): boolean {
+  try {
+    localStorage.setItem(PLAINTEXT_MNEMONIC_KEY, mnemonic);
+    return true;
+  } catch (error) {
+    console.error('Failed to persist mnemonic:', error);
+    return false;
+  }
+}
+
+/**
+ * Loads a stored plain text mnemonic from localStorage if it exists.
+ */
+export function loadPlaintextMnemonic(): string | null {
+  try {
+    return localStorage.getItem(PLAINTEXT_MNEMONIC_KEY);
+  } catch (error) {
+    console.error('Failed to read mnemonic from storage:', error);
+    return null;
+  }
+}
+
+/**
+ * Removes the stored mnemonic from localStorage.
+ */
+export function removePlaintextMnemonic(): boolean {
+  try {
+    localStorage.removeItem(PLAINTEXT_MNEMONIC_KEY);
+    return true;
+  } catch (error) {
+    console.error('Failed to remove mnemonic from storage:', error);
+    return false;
   }
 }
 
