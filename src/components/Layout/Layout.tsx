@@ -108,17 +108,17 @@ const Layout: Component<any> = (props) => {
     '/landing',
   ]);
 
-  const shouldUseStandaloneLayout = () => standaloneRoutes.has(location.pathname);
-
-  return (
-    <Show
-      when={!shouldUseStandaloneLayout()}
-      fallback={<>
+  if (standaloneRoutes.has(location.pathname)) {
+    return (
+      <>
         <div id="modal" class={styles.modal}></div>
         {props.children}
-      </>}
-    >
-      <>
+      </>
+    );
+  }
+
+  return (
+    <>
         <div class={styles.preload}>
           <div class="reply_icon"></div>
           <div class="reply_icon_fill"></div>
@@ -304,9 +304,8 @@ const Layout: Component<any> = (props) => {
           note={app?.reportContent}
           onClose={() => app?.actions.closeReportContent()}
         />
-      </>
-    </Show>
-  )
-}
+    </>
+  );
+};
 
 export default Layout;
