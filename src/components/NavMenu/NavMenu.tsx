@@ -25,7 +25,7 @@ const NavMenu: Component< { id?: string } > = (props) => {
 
   const links = [
     {
-      to: '/home',
+      to: '/',
       label: intl.formatMessage(t.home),
       icon: 'homeIcon',
     },
@@ -35,171 +35,71 @@ const NavMenu: Component< { id?: string } > = (props) => {
       icon: 'readsIcon',
     },
     {
-      to: '/explore',
-      label: intl.formatMessage(t.explore),
-      icon: 'exploreIcon',
-    },
-    {
-      to: '/dms',
-      label: intl.formatMessage(t.messages),
-      icon: 'messagesIcon',
-      bubble: () => dms?.dmCount || 0,
-    },
-    {
-      to: '/bookmarks',
-      label: intl.formatMessage(t.bookmarks),
-      icon: 'bookmarkIcon',
-    },
-    {
       to: '/notifications',
       label: intl.formatMessage(t.notifications),
       icon: 'notificationsIcon',
-      bubble: () => notifications?.notificationCount || 0,
-      hiddenOnSmallScreens: true,
+      badge: notifications?.notificationCount,
     },
     {
-      to: '/downloads',
-      label: intl.formatMessage(t.downloads),
-      icon: 'downloadIcon',
-      bubble: () => notifications?.downloadsCount || 0,
-    },
-    {
-      to: '/wallet',
-      label: intl.formatMessage(t.wallet),
-      icon: 'lightningIcon',
-    },
-    {
-      to: '/settings',
-      label: intl.formatMessage(t.settings),
-      icon: 'settingsIcon',
-      hiddenOnSmallScreens: true,
-      bubble: () => account?.sec ? 1 : 0,
+      to: '/messages',
+      label: intl.formatMessage(t.messages),
+      icon: 'messagesIcon',
+      badge: dms?.dmsCount,
     },
   ];
 
-  const isBigScreen = () => (media?.windowSize.w || 0) > 1300;
+  const isActive = (link: { to: string, label: string, icon: string }) => {
+    if (link.to === '/') {
+      return loc.pathname === '/';
+    }
 
-  const noReadsConfirm: ConfirmInfo = {
-    title: "Coming Soon",
-    description: "Primal does not have article creation capabilities yet. We recommend Highlighter to content creators. Would you like to try it?",
-    confirmLabel: "Yes, go to Highlighter",
-    abortLabel: "No Thanks",
-    onConfirm: () => {
-      window.open('https://highlighter.com', '_blank')?.focus();
-    },
-    onAbort: () => {
-      app?.actions.closeConfirmModal();
-    },
+    return loc.pathname.startsWith(link.to);
   };
 
-  return (
-    <div class={styles.navMenu} id={props.id}>
-      <nav class={styles.sideNav}>
-        <For each={links}>
-          {({ to, label, icon, bubble, hiddenOnSmallScreens }) => {
-            return <NavLink
-              to={to}
-              label={label}
-              icon={icon}
-              bubble={bubble}
-              hiddenOnSmallScreens={hiddenOnSmallScreens}
-            />
-          }
-          }
-        </For>
-      </nav>
-      <Show when={account?.hasPublicKey()}>
-        <div class={styles.callToAction}>
-          <Switch
-            fallback={
-              <Show
-                when={isBigScreen()}
-                fallback={
-                  <ButtonPrimary
-                    id={props.id}
-                    onClick={account?.actions?.showNewNoteForm}
-                  >
-                    <div class={styles.postIcon}></div>
-                  </ButtonPrimary>
-                }
-              >
-                <ButtonPrimary
-                  id={props.id}
-                  onClick={account?.actions?.showNewNoteForm}
-                >
-                  {intl.formatMessage(tActions.newNote)}
-                </ButtonPrimary>
-              </Show>
-            }
-          >
-            <Match when={loc.pathname.startsWith('/myarticles')}>
-              <Show
-                when={isBigScreen()}
-                fallback={
-                  <ButtonSecondary
-                    id={props.id}
-                    onClick={() => {
-                      // app?.actions.openConfirmModal(noReadsConfirm);
-                      navigate('/myarticles');
-                    }}
-                  >
-                    <div class={styles.postIcon}></div>
-                  </ButtonSecondary>
-                }
-              >
-                <ButtonSecondary
-                  id={props.id}
-                  onClick={() => {
-                    // app?.actions.openConfirmModal(noReadsConfirm);
-                    navigate('/myarticles');
-                  }}
-                  noPadding={true}
-                >
-                  {intl.formatMessage(tActions.myArticles)}
-                </ButtonSecondary>
-              </Show>
-            </Match>
-            <Match when={loc.pathname.startsWith('/reads') || loc.pathname.startsWith('/e/naddr') || loc.pathname.startsWith('/a/naddr')}>
-              <Show
-                when={isBigScreen()}
-                fallback={
-                  <ButtonPrimary
-                    id={props.id}
-                    onClick={() => {
-                      // app?.actions.openConfirmModal(noReadsConfirm);
-                      navigate('/myarticles');
-                    }}
-                  >
-                    <div class={styles.postIcon}></div>
-                  </ButtonPrimary>
-                }
-              >
-                <ButtonPrimary
-                  id={props.id}
-                  onClick={() => {
-                    // app?.actions.openConfirmModal(noReadsConfirm);
-                    navigate('/myarticles');
-                  }}
-                >
-                  {intl.formatMessage(tActions.myArticles)}
-                </ButtonPrimary>
-              </Show>
-            </Match>
-          </Switch>
-        </div>
-      </Show>
-      <Show when={account?.isKeyLookupDone && !account?.hasPublicKey() && isBigScreen()}>
-        <div class={styles.callToAction}>
-          <div class={styles.message}>
-            {intl.formatMessage(tPlaceholders.welcomeMessage)}
-          </div>
-          <ButtonPrimary onClick={account?.actions.showGetStarted}>
-            {intl.formatMessage(tActions.getStarted)}
-          </ButtonPrimary>
-        </div>
-      </Show>
-    </div>
-  )
-}
+  const doNewPost = () => {
+    app?.actions.openNewNoteModal();
+  };
 
-export default hookForDev(NavMenu);
+  // @ts-ignore
+  hookForDev(() => {
+    return {
+      dms,
+    };
+  });
+
+  return (
+    <div id={props.id} class={styles.navMenu}>
+      <Show
+        when={!media?.actions.isSmallDevice()}
+        fallback={
+          <button
+            onClick={doNewPost}
+            class={styles.smallButton}
+          >
+            <div class="gg-add"></div>
+          </button>
+        }
+      >
+        <ButtonPrimary
+          onClick={doNewPost}
+          class={styles.newNoteButton}
+        >
+          {intl.formatMessage(tActions.newNote)}
+        </ButtonPrimary>
+      </Show>
+      <For each={links}>
+        {(link) => (
+          <NavLink
+            to={link.to}
+            label={link.label}
+            icon={link.icon}
+            isActive={isActive(link)}
+            badge={link.badge}
+          />
+        )}
+      </For>
+    </div>
+  );
+};
+
+export default NavMenu;
