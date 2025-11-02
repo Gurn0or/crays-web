@@ -47,124 +47,117 @@ const LayoutDesktop: Component<{
   }
 
   return (
-    <Show
-      when={location.pathname !== '/'}
-      fallback={<>
-        <div id="modal" class={styles.modal}></div>
-        {props.children}
-      </>}
-    >
-      <>
-        <div id="container" ref={container} class={containerClass()}>
+    <>
+      <div id="container" ref={container} class={containerClass()}>
+        <Switch>
+          <Match when={location.pathname.includes('/citadel_stream')}>
+            <div>
+              {props.children}
+            </div>
+          </Match>
+          <Match when={location.pathname.includes('/live/')}>
+            <div class={`${styles.leftColumn} ${styles.liveStreamLeft}`}>
+              <div>
+                <div id="branding_holder" class={styles.leftHeader}>
+                  <Branding isHome={isHome()} small={true} />
+                </div>
+
+                <div class={styles.leftContent}>
+                  <LiveNavMenu />
+                </div>
+
+                <div class={styles.leftFooter}>
+                  <Show when={location.pathname !== '/new'}>
+                    <ProfileWidget hideName={true} />
+                  </Show>
+                </div>
+              </div>
+            </div>
+          </Match>
+
+          <Match when={true}>
+            <div class={styles.leftColumn}>
+              <div>
+                <div id="branding_holder" class={styles.leftHeader}>
+                  <Branding isHome={isHome()} />
+                </div>
+
+                <div class={styles.leftContent}>
+                  <NavMenu />
+                  <Show when={location.pathname === '/new'}>
+                    <div class={styles.overlay}></div>
+                  </Show>
+                </div>
+
+                <div class={styles.leftFooter}>
+                  <Show when={location.pathname !== '/new'}>
+                    <ProfileWidget />
+                  </Show>
+                </div>
+              </div>
+            </div>
+          </Match>
+        </Switch>
+
+        <Show when={account?.isKeyLookupDone}>
           <Switch>
             <Match when={location.pathname.includes('/citadel_stream')}>
-              <div>
-                {props.children}
-              </div>
+              <></>
             </Match>
-            <Match when={location.pathname.includes('/live/')}>
-              <div class={`${styles.leftColumn} ${styles.liveStreamLeft}`}>
-                <div>
-                  <div id="branding_holder" class={styles.leftHeader}>
-                    <Branding isHome={isHome()} small={true} />
-                  </div>
 
-                  <div class={styles.leftContent}>
-                    <LiveNavMenu />
-                  </div>
-
-                  <div class={styles.leftFooter}>
-                    <Show when={location.pathname !== '/new'}>
-                      <ProfileWidget hideName={true} />
-                    </Show>
-                  </div>
+            <Match when={location.pathname.includes('/live')}>
+              <div class={styles.liveStreamCenter}>
+                <div id="new_note_input" class={styles.headerFloater}>
+                  <NewNote onSuccess={props.onNewNotePosted}/>
                 </div>
+                {props.children}
               </div>
             </Match>
 
             <Match when={true}>
-              <div class={styles.leftColumn}>
-                <div>
-                  <div id="branding_holder" class={styles.leftHeader}>
-                    <Branding isHome={isHome()} />
+              <div class={styles.centerColumn}>
+                <div class={styles.centerContent}>
+                  <div id="new_note_input" class={styles.headerFloater}>
+                    <NewNote onSuccess={props.onNewNotePosted}/>
                   </div>
 
-                  <div class={styles.leftContent}>
-                    <NavMenu />
-                    <Show when={location.pathname === '/new'}>
-                      <div class={styles.overlay}></div>
-                    </Show>
-                  </div>
-
-                  <div class={styles.leftFooter}>
-                    <Show when={location.pathname !== '/new'}>
-                      <ProfileWidget />
-                    </Show>
+                  <div>
+                    {props.children}
                   </div>
                 </div>
               </div>
             </Match>
           </Switch>
+        </Show>
 
-          <Show when={account?.isKeyLookupDone}>
-            <Switch>
-              <Match when={location.pathname.includes('/citadel_stream')}>
-                <></>
-              </Match>
-
-              <Match when={location.pathname.includes('/live')}>
-                <div class={styles.liveStreamCenter}>
-                  <div id="new_note_input" class={styles.headerFloater}>
-                    <NewNote onSuccess={props.onNewNotePosted}/>
-                  </div>
-                  {props.children}
-                </div>
-              </Match>
-
-              <Match when={true}>
-                <div class={styles.centerColumn}>
-                  <div class={styles.centerContent}>
-                    <div id="new_note_input" class={styles.headerFloater}>
-                      <NewNote onSuccess={props.onNewNotePosted}/>
-                    </div>
-
-                    <div>
-                      {props.children}
-                    </div>
+        <Switch>
+          <Match when={location.pathname.includes('/live/') || location.pathname.includes('/citadel_stream')}>
+            <></>
+          </Match>
+          <Match when={location.pathname.startsWith('/messages') || location.pathname.startsWith('/dms')}>
+            <div class={`${styles.rightColumn} ${styles.messagesColumn}`}>
+              <div>
+                <div class={`${styles.rightHeader} ${styles.messagesHeader}`}>
+                  <div id="search_section" class={styles.messagesSearch}>
                   </div>
                 </div>
-              </Match>
-            </Switch>
-          </Show>
-
-          <Switch>
-            <Match when={location.pathname.includes('/live/') || location.pathname.includes('/citadel_stream')}>
-              <></>
-            </Match>
-            <Match when={location.pathname.startsWith('/messages') || location.pathname.startsWith('/dms')}>
-              <div class={`${styles.rightColumn} ${styles.messagesColumn}`}>
-                <div>
-                  <div class={`${styles.rightHeader} ${styles.messagesHeader}`}>
-                    <div id="search_section" class={styles.messagesSearch}>
-                    </div>
-                  </div>
-                  <div class={`${styles.rightContent} ${location.pathname.startsWith('/explore') ||location.pathname.startsWith('/search') ? styles.exploreHeader : ''}`}>
-                    <div id="right_sidebar">
-                    </div>
+                <div class={`${styles.rightContent} ${location.pathname.startsWith('/explore') ||location.pathname.startsWith('/search') ? styles.exploreHeader : ''}`}>
+                  <div id="right_sidebar">
                   </div>
                 </div>
               </div>
-            </Match>
-            <Match when={location.pathname.startsWith('/search') || location.pathname.startsWith('/reads/edit')}>
-              <div class={`${styles.rightColumn}`}>
-                <div>
-                  <div class={`${styles.rightContent} ${styles.exploreHeader}`}>
-                    <div id="right_sidebar">
-                    </div>
+            </div>
+          </Match>
+          <Match when={location.pathname.startsWith('/search') || location.pathname.startsWith('/reads/edit')}>
+            <div class={`${styles.rightColumn}`}>
+              <div>
+                <div class={`${styles.rightContent} ${styles.exploreHeader}`}>
+                  <div id="right_sidebar">
                   </div>
                 </div>
               </div>
-            </Match>
+            </div>
+          </Match>
             <Match when={true}>
               <div class={`${styles.rightColumn}`}>
                 <div>
@@ -181,8 +174,7 @@ const LayoutDesktop: Component<{
             </Match>
           </Switch>
         </div>
-      </>
-    </Show>
+    </>
   )
 }
 

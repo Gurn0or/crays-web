@@ -77,30 +77,22 @@ const LayoutPhone: Component<{
   }
 
   return (
-    <Show
-      when={location.pathname !== '/'}
-      fallback={<>
-        <div id="modal" class={styles.modal}></div>
-        {props.children}
-      </>}
-    >
-      <>
-        <div id="container" ref={container} class={containerClass()}>
-          <Show when={account?.isKeyLookupDone}>
-            <div class={styles.phoneContent}>
-              <div id="new_note_input" class={styles.headerFloater}>
-                <NewNote onSuccess={props.onNewNotePosted}/>
-              </div>
-              {props.children}
+    <>
+      <div id="container" ref={container} class={containerClass()}>
+        <Show when={account?.isKeyLookupDone}>
+          <div class={styles.phoneContent}>
+            <div id="new_note_input" class={styles.headerFloater}>
+              <NewNote onSuccess={props.onNewNotePosted}/>
             </div>
+            {props.children}
+          </div>
 
-            <div class={styles.phoneFooter}>
-              <NavPhone />
-            </div>
-          </Show>
-        </div>
-      </>
-    </Show>
+          <div class={styles.phoneFooter}>
+            <NavPhone />
+          </div>
+        </Show>
+      </div>
+    </>
   )
 }
 
