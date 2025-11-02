@@ -1,7 +1,13 @@
 import { createContext, useContext, ParentComponent, onMount } from 'solid-js';
 import { createStore } from 'solid-js/store';
 import { createEffect } from 'solid-js';
-import { loadWalletState, loadEncryptedMnemonic } from '../lib/breez/storage';
+import {
+  loadWalletState,
+  loadEncryptedMnemonic,
+  loadPlaintextMnemonic,
+  savePlaintextMnemonic,
+  removePlaintextMnemonic,
+} from '../lib/breez/storage';
 
 // Types
 interface BreezWalletState {
@@ -47,20 +53,22 @@ export const BreezWalletProvider: ParentComponent = (props) => {
       // Check if wallet exists and attempt auto-connect
       const walletState = loadWalletState();
       const encryptedMnemonic = loadEncryptedMnemonic();
-      
-      if (walletState && encryptedMnemonic) {
+      const storedMnemonic = loadPlaintextMnemonic();
+
+      if (walletState?.hasWallet) {
         setState('hasWallet', true);
-        
+      }
+
+      if (walletState?.hasWallet && storedMnemonic) {
         try {
-          // Attempt to restore wallet automatically
-          // Note: In production, you might need to decrypt the mnemonic
-          // with a stored key or prompt for password
-          await actions.restoreWallet(encryptedMnemonic);
+          await actions.restoreWallet(storedMnemonic);
           console.log('Wallet automatically restored from storage');
         } catch (restoreError) {
           console.error('Failed to auto-restore wallet:', restoreError);
           setState('error', 'Failed to automatically restore wallet. Please reconnect manually.');
         }
+      } else if (walletState?.hasWallet && !storedMnemonic && encryptedMnemonic) {
+        console.warn('Encrypted mnemonic found but no decryption path is configured yet.');
       }
     } catch (error) {
       console.error('Failed to initialize Breez SDK:', error);
@@ -77,7 +85,9 @@ export const BreezWalletProvider: ParentComponent = (props) => {
         setState('mnemonic', mnemonic);
         setState('isConnected', true);
         setState('hasWallet', true);
-        
+
+        savePlaintextMnemonic(mnemonic);
+
         // Store wallet exists flag
         localStorage.setItem('breez_wallet_exists', 'true');
         
@@ -100,11 +110,13 @@ export const BreezWalletProvider: ParentComponent = (props) => {
         if (!validateMnemonic(mnemonic)) {
           throw new Error('Invalid mnemonic phrase');
         }
-        
+
         setState('mnemonic', mnemonic);
         setState('isConnected', true);
         setState('hasWallet', true);
-        
+
+        savePlaintextMnemonic(mnemonic);
+
         // Store wallet exists flag
         localStorage.setItem('breez_wallet_exists', 'true');
         
@@ -124,6 +136,7 @@ export const BreezWalletProvider: ParentComponent = (props) => {
         setState('mnemonic', null);
         setState('balance', 0);
         setState('error', null);
+        removePlaintextMnemonic();
       } catch (error) {
         console.error('Error disconnecting:', error);
         throw error;
