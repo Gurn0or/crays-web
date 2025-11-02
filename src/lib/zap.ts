@@ -122,12 +122,10 @@ export const zapNote = async (
     const event = encodeURIComponent(JSON.stringify(signedEvent));
     const r2 = await (await fetch(`${callback}?amount=${sats}&nostr=${event}`)).json();
     const pr = r2.pr;
-
     if (useBreez) {
       const breezPaid = await payWithBreez(pr);
       if (breezPaid) return true;
     }
-
     if (nwc && nwc[1] && nwc[1].length > 0) {
       return await zapOverNWC(sender, nwc[1], pr);
     }
@@ -177,12 +175,10 @@ export const zapArticle = async (
     const event = encodeURIComponent(JSON.stringify(signedEvent));
     const r2 = await (await fetch(`${callback}?amount=${sats}&nostr=${event}`)).json();
     const pr = r2.pr;
-
     if (useBreez) {
       const breezPaid = await payWithBreez(pr);
       if (breezPaid) return true;
     }
-
     if (nwc && nwc[1] && nwc[1].length > 0) {
       return await zapOverNWC(sender, nwc[1], pr);
     }
@@ -227,12 +223,10 @@ export const zapProfile = async (
     const event = encodeURIComponent(JSON.stringify(signedEvent));
     const r2 = await (await fetch(`${callback}?amount=${sats}&nostr=${event}`)).json();
     const pr = r2.pr;
-
     if (useBreez) {
       const breezPaid = await payWithBreez(pr);
       if (breezPaid) return true;
     }
-
     if (nwc && nwc[1] && nwc[1].length > 0) {
       return await zapOverNWC(sender, nwc[1], pr);
     }
@@ -282,7 +276,7 @@ export const zapSubscription = async (
   };
   if (subEvent.content.length > 0) {
     // @ts-ignore
-    payload.comment = comment;
+    payload.comment = subEvent.content;
   }
   const zapReq = nip57.makeZapRequest(payload);
   try {
@@ -290,12 +284,10 @@ export const zapSubscription = async (
     const event = encodeURIComponent(JSON.stringify(signedEvent));
     const r2 = await (await fetch(`${callback}?amount=${sats}&nostr=${event}`)).json();
     const pr = r2.pr;
-
     if (useBreez) {
       const breezPaid = await payWithBreez(pr);
       if (breezPaid) return true;
     }
-
     if (nwc && nwc[1] && nwc[1].length > 0) {
       return await zapOverNWC(sender, nwc[1], pr);
     }
@@ -346,12 +338,10 @@ export const zapDVM = async (
     const event = encodeURIComponent(JSON.stringify(signedEvent));
     const r2 = await (await fetch(`${callback}?amount=${sats}&nostr=${event}`)).json();
     const pr = r2.pr;
-
     if (useBreez) {
       const breezPaid = await payWithBreez(pr);
       if (breezPaid) return true;
     }
-
     if (nwc && nwc[1] && nwc[1].length > 0) {
       return await zapOverNWC(sender, nwc[1], pr);
     }
@@ -402,12 +392,10 @@ export const zapStream = async (
     const event = encodeURIComponent(JSON.stringify(signedEvent));
     const r2 = await (await fetch(`${callback}?amount=${sats}&nostr=${event}`)).json();
     const pr = r2.pr;
-
     if (useBreez) {
       const breezPaid = await payWithBreez(pr);
       if (breezPaid) return { success: true, event: signedEvent } as any;
     }
-
     if (nwc && nwc[1] && nwc[1].length > 0) {
       const success = await zapOverNWC(sender, nwc[1], pr);
       return { success, event: signedEvent } as any;
@@ -421,7 +409,8 @@ export const zapStream = async (
   }
 }
 
+// Restored and completed helper functions
 export const getZapEndpoint = async (user: PrimalUser): Promise<string | null>  => {
   try {
-    let lnurl: string = ''
-    let
+    let lnurl: string = '';
+    let callback: string | null = null
